@@ -1,3 +1,7 @@
+/*
+FFmpeg simple Encoder
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -107,7 +111,7 @@ bool Encoder::InitFile( const std::string &inputFile, const std::string &contain
 		// Open Video and Audio stream
 		res = false;
 
-		cout << "Opening video stream" << endl;
+		//cout << "Opening video stream" << endl;
 		res = OpenVideo(_pFormatContext, _vost );
 
 		av_dump_format(_pFormatContext, 0, filename, 1);
@@ -130,7 +134,7 @@ bool Encoder::InitFile( const std::string &inputFile, const std::string &contain
 		//
 		// if (res)
 		// {
-			cout << "Writing file header" << endl;
+			//cout << "Writing file header" << endl;
 
 			// Write file header.
 			avformat_write_header(_pFormatContext, NULL);
@@ -141,6 +145,9 @@ bool Encoder::InitFile( const std::string &inputFile, const std::string &contain
 
 	nSizeVideoEncodeBuffer = 10000000;
 	pVideoEncodeBuffer = (uint8_t *)av_malloc(nSizeVideoEncodeBuffer);
+
+	cout << "Codec time base: " << _vost->enc->time_base.num << "/" << _vost->enc->time_base.den << endl;
+	cout << "Video stream time base: " << _vost->st->time_base.num << "/" << _vost->st->time_base.den << endl;
 
 
 	if (!res)
@@ -295,7 +302,7 @@ bool Encoder::OpenVideo(AVFormatContext *oc, OutputStream *ost)
 	// 		}
 	// }
 
-	/* copy the stream parameters to the muxer */
+	/* copy the codec parameters to the stream */
 	ret = avcodec_parameters_from_context(ost->st->codecpar, ost->enc);
 	if (ret < 0) {
 			fprintf(stderr, "Could not copy the stream parameters\n");
@@ -615,7 +622,7 @@ bool Encoder::AddFrame(AVFrame* frame, const char* soundBuffer, int soundBufferS
 	pCurrentPicture->pts = numFrames;
 	numFrames++;
 
-	// cout << "Writing frame " << pCurrentPicture->pts << endl;
+	//cout << "Writing frame " << pCurrentPicture->pts << endl;
 
 		res = AddVideoFrame(pCurrentPicture, _vost);
 
@@ -689,6 +696,8 @@ bool Encoder::AddVideoFrame(AVFrame *frame, OutputStream *ost)
 			pkt.size         = packet.size;
 			pkt.pts          = frame->pts;
 			pkt.dts          = 0;
+
+			av_packet_rescale_ts( &pkt, ost->enc->time_base, ost->st->time_base );
 
 		{
 			// Write packet with frame.

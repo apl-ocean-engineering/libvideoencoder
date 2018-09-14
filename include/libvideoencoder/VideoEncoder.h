@@ -1,6 +1,5 @@
 #pragma once
 
-//#include "stdint.h"
 extern "C"
 {
   #include <libavcodec/avcodec.h>
@@ -8,7 +7,6 @@ extern "C"
   #include <libswscale/swscale.h>
   #include <libavutil/mathematics.h>
 }
-
 
 #include <string>
 
