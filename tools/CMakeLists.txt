@@ -1,13 +1,10 @@
 
-fips_begin_app( serdp_recorder cmdline )
+fips_begin_app( encode cmdline )
   fips_files(
-    SerdpRecorder.cpp
+    main.cpp
   )
 
-  fips_deps( blackmagic oculus active_object  )
-
-  fips_include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+  fips_deps( videoencoder )
+  fips_libs( avutil avcodec swscale avformat )
 
 fips_end_app()

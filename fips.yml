@@ -2,10 +2,13 @@ imports:
     fips-googletest:
         git: https://github.com/amarburg/fips-googletest.git
         cond: "FIPS_UNITTESTS"
-    libblackmagic:
-        git: https://github.com/amarburg/libactive_object.git
-    liboculus:
-        git: https://github.com/amarburg/liboculus.git
+
+exports:
+  header-dirs:
+    - include/
+  modules:
+    libvideoencoder: .
+
 
 defines:
   FIPS_EXCEPTIONS: ON
