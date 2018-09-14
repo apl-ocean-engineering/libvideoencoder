@@ -1,6 +1,6 @@
+#pragma once
 
-
-static AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height)
+static AVFrame *alloc_frame(enum AVPixelFormat pix_fmt, int width, int height)
 {
     AVFrame *picture;
     int ret;

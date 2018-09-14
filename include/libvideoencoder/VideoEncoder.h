@@ -8,28 +8,16 @@ extern "C"
   #include <libavutil/mathematics.h>
 }
 
+#include <vector>
 #include <string>
+#include <memory>
+
+#include "libvideoencoder/OutputStream.h"
 
 namespace VideoEncoder {
 
   class Encoder {
   public:
-
-    struct OutputStream {
-        AVStream *st;
-        AVCodecContext *enc;
-
-        /* pts of the next frame that will be generated */
-        // int64_t next_pts;
-        // int samples_count;
-
-        AVFrame *frame;
-        AVFrame *tmp_frame;
-
-        // float t, tincr, tincr2;
-        // struct SwsContext *sws_ctx;
-        // struct SwrContext *swr_ctx;
-    };
 
 
     Encoder( const int width, const int height );
@@ -37,24 +25,24 @@ namespace VideoEncoder {
     virtual ~Encoder();
 
     // init output file
-    bool InitFile(const std::string &inputFile, const std::string &container);
+    bool InitFile(const std::string &inputFile, const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE  );
+
     // Add video and audio data
-    bool AddFrame(AVFrame* frame, const char* soundBuffer, int soundBufferSize);
+    bool AddFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream = 0 );
+
     // end of output
     bool Finish();
 
   private:
 
-    // Allocate memory
-    AVFrame * CreateFFmpegPicture(AVPixelFormat pix_fmt, int nWidth, int nHeight);
-
     // Add video stream
-    bool AddVideoStream(OutputStream *ost, AVFormatContext *pContext, AVCodecID codec_id);
+     int AddVideoStream(AVCodecID codec_id);
     // Open Video Stream
-    bool OpenVideo(AVFormatContext *oc, OutputStream *ost);
+
+    //bool OpenVideo(AVFormatContext *oc, OutputStream *ost);
 
     // Close video stream
-    void CloseVideo(AVFormatContext *oc, OutputStream *ost);
+    //void CloseVideo(AVFormatContext *oc, OutputStream *ost);
 
     // Add audio stream
     // AVStream * AddAudioStream(AVFormatContext *pContext, AVCodecID codec_id);
@@ -66,7 +54,7 @@ namespace VideoEncoder {
     //== Add frames to movie ==
 
     // Add video frame to stream
-    bool AddVideoFrame(AVFrame *data, OutputStream *ost);
+    //bool AddVideoFrame(AVFrame *data, OutputStream *ost);
 
     // Add audio samples to stream
     //bool AddAudioSample(AVFormatContext *_pFormatContext, AVStream *pStream, const char* soundBuffer, int soundBufferSize);
@@ -74,51 +62,47 @@ namespace VideoEncoder {
 
     // Free all resourses.
     void Free();
-    bool NeedConvert();
-
-
-
     int _width, _height;
 
 
     // output file name
-    std::string     outputFilename;
+    //std::string     _outputFilename;
 
-    // output format.
+    // output format and format context
     AVOutputFormat  *_pOutFormat;
 
     // format context
     AVFormatContext *_pFormatContext;
 
-    OutputStream *_vost;
+    std::vector< std::shared_ptr<OutputStream> > _vosts;
 
     // video stream context
     // AVStream * _pVideoStream;
     // // audio streams context
-    AVStream * pAudioStream;
+    //AVStream * pAudioStream;
 
-    // convert context context
-    struct SwsContext *_pImgConvertCtx;
-    // encode buffer and size
-    uint8_t * pVideoEncodeBuffer;
-    int nSizeVideoEncodeBuffer;
+    // // convert context context
+    // struct SwsContext *_pImgConvertCtx;
+    // // encode buffer and size
+    // uint8_t * pVideoEncodeBuffer;
+    // int nSizeVideoEncodeBuffer;
 
     // audio buffer and size
-    uint8_t * pAudioEncodeBuffer;
-    int nSizeAudioEncodeBuffer;
+    // uint8_t * pAudioEncodeBuffer;
+    // int nSizeAudioEncodeBuffer;
 
 
-    int numFrames;
+    //int numFrames;
 
     // count of sample
-    int audioInputSampleSize;
+    // int audioInputSampleSize;
     // current picture
     AVFrame *pCurrentPicture;
 
     // audio buffer. Save rest samples in audioBuffer from previous audio frame.
-    char* audioBuffer;
-    int   nAudioBufferSize;
-    int   nAudioBufferSizeCurrent;
+    // char* audioBuffer;
+    // int   nAudioBufferSize;
+    // int   nAudioBufferSizeCurrent;
 
   };
 

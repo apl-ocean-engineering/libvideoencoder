@@ -21,7 +21,7 @@ int main( int argc, char **argv ) {
   const int Width=320, Height=240;
   Encoder encoder(Width,Height);
 
-  auto result = encoder.InitFile("/tmp/test.mov", "auto");
+  auto result = encoder.InitFile("/tmp/test.mov", "auto", AV_CODEC_ID_PRORES );
   if( !result ) {
     std::cerr << "Unable to initialize encoder." << std::endl;
     exit(-1);
@@ -56,8 +56,8 @@ int main( int argc, char **argv ) {
           setPixel( frame, x, y, rand() % 256, rand() % 256, rand() % 256  );
         }
       }
-      
-    encoder.AddFrame( frame, nullptr, 0 );
+
+    encoder.AddFrame( frame, frameNum, 0 );
   }
 
   av_frame_free( &frame );
