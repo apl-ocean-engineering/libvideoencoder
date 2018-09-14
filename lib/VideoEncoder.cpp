@@ -11,37 +11,20 @@ FFmpeg simple Encoder
 #include <iostream>
 
 #include "libvideoencoder/VideoEncoder.h"
-#include "libvideoencoder/Settings.h"
+
+#include "utils.h"
 
 
 #define MAX_AUDIO_PACKET_SIZE (128 * 1024)
 
 
-static AVFrame *alloc_picture(enum AVPixelFormat pix_fmt, int width, int height)
-{
-    AVFrame *picture;
-    int ret;
-    picture = av_frame_alloc();
-    if (!picture)
-        return NULL;
-    picture->format = pix_fmt;
-    picture->width  = width;
-    picture->height = height;
-    /* allocate the buffers for the frame data */
-    ret = av_frame_get_buffer(picture, 32);
-    if (ret < 0) {
-        fprintf(stderr, "Could not allocate frame data.\n");
-        exit(1);
-    }
-    return picture;
-}
-
 namespace VideoEncoder {
 
 	using namespace std;
 
-	Encoder::Encoder()
-		: _pOutFormat( nullptr ),
+	Encoder::Encoder( const int width, const int height )
+		: _width(width), _height(height),
+      _pOutFormat( nullptr ),
 			_pFormatContext( nullptr ),
 			_vost( new OutputStream ),
 			_pImgConvertCtx( nullptr ),
@@ -57,6 +40,12 @@ namespace VideoEncoder {
     nAudioBufferSizeCurrent = 0;
 
 		av_log_set_level( AV_LOG_VERBOSE );
+  }
+
+
+  Encoder::~Encoder()
+  {
+    Finish();
   }
 
 
@@ -169,15 +158,16 @@ bool Encoder::Finish()
 
 	if (_pFormatContext)
 	{
+    cerr << "Writing trailer" << endl;
 		av_write_trailer(_pFormatContext);
 		Free();
 	}
 
-	if (audioBuffer)
-	{
-		delete[] audioBuffer;
-		audioBuffer = NULL;
-	}
+	// if (audioBuffer)
+	// {
+	// 	delete[] audioBuffer;
+	// 	audioBuffer = NULL;
+	// }
 
 	return res;
 }
@@ -425,9 +415,11 @@ bool Encoder::AddVideoStream(OutputStream *vost, AVFormatContext *pContext, AVCo
 	//cparser->height = H_VIDEO;
 
 	//AVCodecParameters *codecPars = stream->codecpar;
+  c->frame_number = 0;
+  c->codec_type = AVMEDIA_TYPE_VIDEO;
 	c->codec_id = codec_id;
-	c->width = W_VIDEO;
-	c->height = H_VIDEO;
+	c->width = _width;
+	c->height = _height;
 
 	/* time base: this is the fundamental unit of time (in seconds) in terms
 	of which frame timestamps are represented. for fixed-fps content,
@@ -695,7 +687,7 @@ bool Encoder::AddVideoFrame(AVFrame *frame, OutputStream *ost)
 			pkt.data         = pVideoEncodeBuffer;
 			pkt.size         = packet.size;
 			pkt.pts          = frame->pts;
-			pkt.dts          = 0;
+			pkt.dts          = frame->pts;
 
 			av_packet_rescale_ts( &pkt, ost->enc->time_base, ost->st->time_base );
 

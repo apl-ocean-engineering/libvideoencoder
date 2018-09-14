@@ -32,12 +32,9 @@ namespace VideoEncoder {
     };
 
 
-    Encoder();
+    Encoder( const int width, const int height );
 
-    virtual ~Encoder()
-    {
-      Finish();
-    }
+    virtual ~Encoder();
 
     // init output file
     bool InitFile(const std::string &inputFile, const std::string &container);
@@ -78,6 +75,10 @@ namespace VideoEncoder {
     // Free all resourses.
     void Free();
     bool NeedConvert();
+
+
+
+    int _width, _height;
 
 
     // output file name
