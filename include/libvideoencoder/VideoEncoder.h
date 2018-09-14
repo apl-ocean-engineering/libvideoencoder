@@ -25,7 +25,7 @@ namespace VideoEncoder {
     virtual ~Encoder();
 
     // init output file
-    bool InitFile(const std::string &inputFile, const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE  );
+    bool InitFile(const std::string &inputFile, const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE, int numStreams = 1 );
 
     // Add video and audio data
     bool AddFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream = 0 );

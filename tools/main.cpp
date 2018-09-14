@@ -19,9 +19,10 @@ void setPixel(AVFrame *pFrame, short x, short y, short red, short green, short b
 int main( int argc, char **argv ) {
 
   const int Width=320, Height=240;
+  const int NumStreams = 2;
   Encoder encoder(Width,Height);
 
-  auto result = encoder.InitFile("/tmp/test.mov", "auto", AV_CODEC_ID_PRORES );
+  auto result = encoder.InitFile("/tmp/test.mov", "auto", AV_CODEC_ID_PRORES, NumStreams );
   if( !result ) {
     std::cerr << "Unable to initialize encoder." << std::endl;
     exit(-1);
@@ -50,6 +51,7 @@ int main( int argc, char **argv ) {
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
+    for( int s = 0; s < NumStreams; s++ ) {
     // Fill buffer with random noise
       for( unsigned int x = 0; x < Width; ++x  ) {
         for( unsigned int y = 0; y < Height; ++y ) {
@@ -57,7 +59,8 @@ int main( int argc, char **argv ) {
         }
       }
 
-    encoder.AddFrame( frame, frameNum, 0 );
+    encoder.AddFrame( frame, frameNum, s );
+  }
   }
 
   av_frame_free( &frame );

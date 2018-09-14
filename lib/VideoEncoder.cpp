@@ -39,7 +39,7 @@ namespace VideoEncoder {
   }
 
 
-  bool Encoder::InitFile( const std::string &inputFile, const std::string &container, const AVCodecID codec)
+  bool Encoder::InitFile( const std::string &inputFile, const std::string &container, const AVCodecID codec, int numStreams)
   {
     // Initialize libavcodec
     avcodec_register_all();
@@ -73,16 +73,18 @@ namespace VideoEncoder {
     if( codec == AV_CODEC_ID_NONE ) codec_id = _pOutFormat->video_codec;;
 
     // Add video stream
-    auto idx = AddVideoStream( codec_id );
-    if( idx < 0 ) {
-      cerr << "Failed to add video stream" << endl;
-      Free();
-      return false;
+    for( int i = 0; i < numStreams; i++ ) {
+      auto idx = AddVideoStream( codec_id );
+      if( idx < 0 ) {
+        cerr << "Failed to add video stream" << endl;
+        Free();
+        return false;
+      }
     }
 
 
-    for( auto itr = _vosts.begin(); itr != _vosts.end(); ++itr ) {
-      if( !(*itr)->open() ) {
+    for( auto const vost : _vosts ) {
+      if( !vost->open() ) {
         cerr << "Couldn't open stream..." << endl;
         return false;
       }

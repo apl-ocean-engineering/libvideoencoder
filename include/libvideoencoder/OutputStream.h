@@ -21,16 +21,16 @@ namespace VideoEncoder {
 
     OutputStream( AVFormatContext *oc )
     : _oc(oc), st(nullptr),
-    enc(nullptr),
+      enc(nullptr),
     _numSamples(0),
     _scaledFrame(nullptr),
     _encodedData( av_buffer_alloc(10000000) ),
-    sws_ctx(nullptr)
+    _swsCtx(nullptr)
     {}
 
       ~OutputStream()
       {
-        if( sws_ctx ) sws_freeContext( sws_ctx );
+        if( _swsCtx ) sws_freeContext( _swsCtx );
         if( _scaledFrame ) av_frame_free( &_scaledFrame );
         if( enc )     avcodec_close( enc );
         //if( st )      avformat_free_context( &st );  // Stream is destroyed when AVFormatContext is cleaned up
@@ -163,13 +163,13 @@ namespace VideoEncoder {
       bool addFrame( AVFrame *frame, int frameNum )
       {
           // Lazy-create the swscaler RGB to YUV420P.
-          if (!sws_ctx) {
-            sws_ctx = sws_getContext(enc->width, enc->height,
+          if (!_swsCtx) {
+            _swsCtx = sws_getContext(enc->width, enc->height,
                                       (AVPixelFormat)frame->format,              // Assume frame format will be consistent...
                                       enc->width, enc->height,
                                       enc->pix_fmt,
                                       SWS_BICUBLIN, NULL, NULL, NULL);
-            assert( sws_ctx );
+            assert( _swsCtx );
           }
 
           frame->pts = frameNum;
@@ -183,7 +183,7 @@ namespace VideoEncoder {
             }
 
             // Convert RGB to YUV.
-            auto res = sws_scale(sws_ctx, frame->data, frame->linesize, 0,
+            auto res = sws_scale(_swsCtx, frame->data, frame->linesize, 0,
                                   enc->height, _scaledFrame->data, _scaledFrame->linesize);
 
             _scaledFrame->pts = frame->pts;
@@ -227,9 +227,12 @@ namespace VideoEncoder {
             return false;
           }
 
+          _numSamples++;
+
           return true;
         }
 
+      protected:
 
         AVFormatContext *_oc;
 
@@ -245,7 +248,7 @@ namespace VideoEncoder {
         //AVFrame *tmp_frame;
 
         // float t, tincr, tincr2;
-        struct SwsContext *sws_ctx;
+        struct SwsContext *_swsCtx;
 
         // struct SwrContext *swr_ctx;
       };
