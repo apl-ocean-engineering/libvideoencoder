@@ -45,7 +45,7 @@ namespace VideoEncoder {
             std::cout << "Using codec " << codec_id << ": " << codecDesc->name << " (" << codecDesc->long_name << ")"  << std::endl;
           } else {
             std::cerr << "Could not retrieve codec description for " << codec_id << std::endl;
-            return -1;
+            return false;
           }
         }
 
@@ -132,19 +132,14 @@ namespace VideoEncoder {
       bool open()
       {
         int ret;
-        //AVCodecContext *c = ost->enc;
-
         // AVDictionary *opt = NULL;
         // av_dict_copy(&opt, opt_arg, 0);
-
-
         AVCodec *codec = avcodec_find_encoder( enc->codec_id );
         if( codec == nullptr ) {
           std::cerr << "Unable to find encoder codec" << std::endl;
           return false;
         }
 
-        /* open the codec */
         ret = avcodec_open2(enc, codec, nullptr);
         //av_dict_free(&opt);
         if (ret < 0) {
@@ -152,7 +147,6 @@ namespace VideoEncoder {
           return false;;
         }
 
-        /* copy the codec parameters to the stream */
         ret = avcodec_parameters_from_context(st->codecpar, enc);
         if (ret < 0) {
           //fprintf(stderr, "Could not copy the stream parameters\n");
@@ -161,34 +155,6 @@ namespace VideoEncoder {
 
         std::cout << "Codec time base: " << enc->time_base.num << "/" << enc->time_base.den << std::endl;
         std::cout << "Video stream time base: " << st->time_base.num << "/" << st->time_base.den << std::endl;
-
-        // // AVCodec *pCodec;
-        // // AVCodecContext *pContext;
-        //
-        // AVCodecContext *pContext = stream->codec;
-        //
-        // // // Find the video encoder.
-        // // pCodec = avcodec_find_encoder(pContext->codec_id);
-        // // if (!pCodec) {
-        // // 	std::cerr << "Cannot find video codec" << std::endl;
-        // // 	return false;
-        // // }
-        //
-        // // Open the codec.
-        // if (avcodec_open2(pContext, pCodec, NULL) < 0)
-        // {
-        // 	std::cerr << "Cannot open video codec" << std::endl;
-        // 	return false;
-        // }
-        //
-        // pVideoEncodeBuffer = NULL;
-        //
-        // // AVFMT_RAWPICTURE is apparently no longer used, so this is always true
-        // // if (!(_pFormatContext->oformat->flags & AVFMT_RAWPICTURE))
-        // // {
-        // 	/* allocate output buffer */
-
-        //	}
 
         return true;
       }
@@ -235,21 +201,18 @@ namespace VideoEncoder {
 
           // Encode
           AVPacket packet;
-          av_init_packet(&packet);
-          packet.buf = _encodedData;
-
-          // if(enc->coded_frame->key_frame) {
-          //   packet.flags |= AV_PKT_FLAG_KEY;
-          // }
-
-          packet.stream_index = st->index;
-          packet.pts          = frame->pts;
-          packet.dts          = frame->pts;
+          packet.buf = av_buffer_ref(_encodedData);
+          packet.size = _encodedData->size;
+          packet.data = NULL;
 
           int nOutputSize = 0;
 
           // Encode frame to packet.
           auto result = avcodec_encode_video2(enc, &packet, frame, &nOutputSize);
+
+          packet.stream_index = st->index;
+          packet.pts          = frame->pts;
+          packet.dts          = frame->pts;
 
           if ((result < 0) || (nOutputSize <= 0)) {
             std::cerr << "Error encoding video" << std::endl;

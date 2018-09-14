@@ -73,36 +73,30 @@ namespace VideoEncoder {
     if( codec == AV_CODEC_ID_NONE ) codec_id = _pOutFormat->video_codec;;
 
     // Add video stream
-    auto result = AddVideoStream( codec_id );
-    if( !result ) {
-      cerr << "Failed to add video stream";
+    auto idx = AddVideoStream( codec_id );
+    if( idx < 0 ) {
+      cerr << "Failed to add video stream" << endl;
       Free();
       return false;
     }
 
 
-    {
-      for( auto itr = _vosts.begin(); itr != _vosts.end(); ++itr ) {
-        if( !(*itr)->open() ) {
-          cerr << "Couldn't open stream..." << endl;
-          return false;
-        }
-      }
-
-      av_dump_format(_pFormatContext, 0, inputFile.c_str(), 1);
-
-
-      // if (res && !(_pOutFormat->flags & AVFMT_NOFILE))
-      // {
-
-      if (avio_open(&_pFormatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
-        cerr << "Cannot open file" << endl;
-        Free();
+    for( auto itr = _vosts.begin(); itr != _vosts.end(); ++itr ) {
+      if( !(*itr)->open() ) {
+        cerr << "Couldn't open stream..." << endl;
         return false;
       }
-
-      avformat_write_header(_pFormatContext, NULL);
     }
+
+    av_dump_format(_pFormatContext, 0, inputFile.c_str(), 1);
+
+    if (avio_open(&_pFormatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
+      cerr << "Cannot open file" << endl;
+      Free();
+      return false;
+    }
+
+    avformat_write_header(_pFormatContext, NULL);
 
     return true;
   }
