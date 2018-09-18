@@ -4,7 +4,7 @@
 using namespace std;
 
 #include "libvideoencoder/VideoEncoder.h"
-using VideoEncoder::Encoder;
+using libvideoencoder::Encoder;
 
 void setPixel(AVFrame *pFrame, short x, short y, short red, short green, short blue ) {
 
@@ -20,7 +20,8 @@ int main( int argc, char **argv ) {
 
   const int Width=320, Height=240;
   const int NumStreams = 2;
-  Encoder encoder(Width,Height);
+  const float FrameRate = 30.0;
+  Encoder encoder(Width, Height, FrameRate);
 
   auto result = encoder.InitFile("/tmp/test.mov", "auto", AV_CODEC_ID_PRORES, NumStreams );
   if( !result ) {

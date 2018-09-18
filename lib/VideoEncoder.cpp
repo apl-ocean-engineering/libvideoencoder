@@ -18,17 +18,15 @@ FFmpeg simple Encoder
 #define MAX_AUDIO_PACKET_SIZE (128 * 1024)
 
 
-namespace VideoEncoder {
+namespace libvideoencoder {
 
   using namespace std;
 
-  Encoder::Encoder( const int width, const int height )
-  : _width(width), _height(height),
+  Encoder::Encoder( const int width, const int height, const float frameRate )
+  : _width(width), _height(height), _frameRate( frameRate ),
     _pOutFormat( nullptr ),
     _pFormatContext( nullptr )
   {
-    //nSizeVideoEncodeBuffer = 0;
-
     av_log_set_level( AV_LOG_VERBOSE );
   }
 
@@ -150,7 +148,7 @@ namespace VideoEncoder {
 
       shared_ptr<OutputStream> stream( new OutputStream( _pFormatContext ));
 
-      if( !stream->init( codec_id, _width, _height ) ) {
+      if( !stream->init( codec_id, _width, _height, _frameRate ) ) {
         return -1;
       }
 

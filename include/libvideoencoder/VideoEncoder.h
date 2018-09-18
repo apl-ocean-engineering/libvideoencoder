@@ -14,13 +14,13 @@ extern "C"
 
 #include "libvideoencoder/OutputStream.h"
 
-namespace VideoEncoder {
+namespace libvideoencoder {
 
   class Encoder {
   public:
 
 
-    Encoder( const int width, const int height );
+    Encoder( const int width, const int height, const float frameRate );
 
     virtual ~Encoder();
 
@@ -63,6 +63,7 @@ namespace VideoEncoder {
     // Free all resourses.
     void Free();
     int _width, _height;
+    float _frameRate;
 
 
     // output file name
