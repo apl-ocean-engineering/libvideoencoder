@@ -8,40 +8,25 @@ if( NOT FIPS_IMPORT )
 	fips_setup(PROJECT libvideoencoder)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
-# find_package(Eigen3 REQUIRED )
-# find_package(Boost COMPONENTS filesystem system program_options REQUIRED )  #n.b. program_options is only required for my version of Stereolabs "Recorder"
-
-## Default OpenCV version
-# list(APPEND OPENCV_COMPONENTS core highgui imgproc )
-# find_package(OpenCV COMPONENTS ${OPENCV_COMPONENTS} REQUIRED)
+#list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-## Configure OpenCV ##
+fips_begin_module( videoencoder )
 
-## Find Blackmagic SDK
-# set( BLACKMAGIC_FORCE_LINUX TRUE )
-# find_package( BlackmagicSDK REQUIRED )
-
-## Set global include paths
-fips_include_directories(
-  ${CMAKE_SOURCE_DIR}/include
- )
-
- fips_begin_module( videoencoder )
-   fips_src( lib *.cpp )
+  fips_src( lib *.cpp )
 
    # fips_libs( ${Boost_LIBRARIES} ${OpenCV_LIBS}
    #            ${ZLIB_LIBRARIES} ${TINYXML2_LIBRARIES} )
    # fips_deps( g3logger )
 
-   # include_directories(
-   #   ${VIDEOIO_INCLUDE_DIRS}
-   #   ${CMAKE_CURRENT_SOURCE_DIR}
-   # )
+   fips_libs( avutil avcodec swscale avformat )
+
+   fips_include_directories(
+	 	${CMAKE_SOURCE_DIR}/include
+	 )
+
  fips_end_module()
 
 
@@ -49,10 +34,12 @@ if( NOT FIPS_IMPORT )
   add_subdirectory("tools/")
 
 	if( FIPS_UNITTESTS )
-			# gtest_begin( blackmagic )
-			#     fips_src( test/unit/ )
-			#     fips_deps( blackmagic )
-			# gtest_end()
+	  gtest_begin( videoencoder )
+	    fips_src( test/unit/ )
+
+  		fips_libs( avutil avcodec swscale avformat )
+			fips_deps( videoencoder )
+		gtest_end()
 	endif()
 
   fips_finish()

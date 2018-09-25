@@ -1,8 +1,6 @@
 
 fips_begin_app( encode cmdline )
-  fips_files(
-    main.cpp
-  )
+  fips_src( . )
 
   fips_deps( videoencoder )
   fips_libs( avutil avcodec swscale avformat )
