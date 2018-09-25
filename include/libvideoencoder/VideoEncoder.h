@@ -16,27 +16,41 @@ extern "C"
 
 namespace libvideoencoder {
 
-  class Encoder {
+  class VideoWriter {
   public:
 
+    VideoWriter( AVOutputFormat  *outFormat,
+                 AVCodec *_codec,
+                 const int width, const int height, const float frameRate, int numStreams = 1 );
+    ~VideoWriter();
 
-    Encoder( const int width, const int height, const float frameRate );
+    bool open( const std::string &inputFile );
 
-    virtual ~Encoder();
+    bool close();
 
-    // init output file
-    bool InitFile(const std::string &inputFile, const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE, int numStreams = 1 );
+    bool addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream = 0 );
 
-    // Add video and audio data
-    bool AddFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream = 0 );
-
-    // end of output
-    bool Finish();
 
   private:
 
-    // Add video stream
-     int AddVideoStream(AVCodecID codec_id);
+    // State received from Encoder
+    AVOutputFormat  *_outFormat;
+    AVCodec *_codec;
+
+    int _width, _height;
+    float _frameRate;
+    int _numStreams;
+
+    // State generated in this module
+    AVFormatContext *_outFormatContext;
+
+    std::vector< std::shared_ptr<OutputStream> > _vosts;
+
+
+    // Free all resourses.
+    void Free();
+
+
     // Open Video Stream
 
     //bool OpenVideo(AVFormatContext *oc, OutputStream *ost);
@@ -60,22 +74,17 @@ namespace libvideoencoder {
     //bool AddAudioSample(AVFormatContext *_pFormatContext, AVStream *pStream, const char* soundBuffer, int soundBufferSize);
 
 
-    // Free all resourses.
-    void Free();
-    int _width, _height;
-    float _frameRate;
+
+
 
 
     // output file name
     //std::string     _outputFilename;
 
     // output format and format context
-    AVOutputFormat  *_pOutFormat;
 
-    // format context
-    AVFormatContext *_pFormatContext;
 
-    std::vector< std::shared_ptr<OutputStream> > _vosts;
+
 
     // video stream context
     // AVStream * _pVideoStream;
@@ -98,12 +107,30 @@ namespace libvideoencoder {
     // count of sample
     // int audioInputSampleSize;
     // current picture
-    AVFrame *pCurrentPicture;
+    //AVFrame *pCurrentPicture;
 
     // audio buffer. Save rest samples in audioBuffer from previous audio frame.
     // char* audioBuffer;
     // int   nAudioBufferSize;
     // int   nAudioBufferSizeCurrent;
+
+  };
+
+
+  class Encoder {
+  public:
+
+    Encoder( const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE );
+    ~Encoder();
+
+     VideoWriter *makeWriter( const int width, const int height, const float frameRate, int numStreams = 1 );
+
+   protected:
+
+  private:
+
+    AVOutputFormat  *_outFormat;
+    AVCodec *_codec;
 
   };
 

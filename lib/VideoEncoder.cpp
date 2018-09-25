@@ -1,5 +1,5 @@
 /*
-FFmpeg simple Encoder
+FFmpeg simple VideoWriter
 */
 
 #include <stdio.h>
@@ -15,199 +15,134 @@ FFmpeg simple Encoder
 #include "libvideoencoder/utils.h"
 
 
-#define MAX_AUDIO_PACKET_SIZE (128 * 1024)
-
-
 namespace libvideoencoder {
-
   using namespace std;
 
-  Encoder::Encoder( const int width, const int height, const float frameRate )
-  : _width(width), _height(height), _frameRate( frameRate ),
-    _pOutFormat( nullptr ),
-    _pFormatContext( nullptr )
+
+  Encoder::Encoder( const std::string &container, const AVCodecID codec_id )
+    : _outFormat(nullptr), _codec(nullptr)
   {
     av_log_set_level( AV_LOG_VERBOSE );
+
+    avcodec_register_all();
+    av_register_all();
+
+    _outFormat = av_guess_format(container.c_str(), NULL, NULL);
+    assert(_outFormat != nullptr );  // Should be an exception?
+
+    // cout << "Using container format " << _outFormat->name << " (" << _outFormat->long_name << ")" << endl;
+    //
+    // const AVCodecDescriptor *codecDesc = avcodec_descriptor_get(codec_id);
+    // if( codecDesc ) {
+    //   std::cout << "Using codec " << codec_id << ": " << codecDesc->name << " (" << codecDesc->long_name << ")"  << std::endl;
+    // } else {
+    //   std::cerr << "Could not retrieve codec description for " << codec_id << std::endl;
+    //   return false;
+    // }
+
+    _codec = avcodec_find_encoder( codec_id );
+    assert( _codec != nullptr );   // Should be an exception?
+
+    //avcodec_register( _codec );
   }
 
 
   Encoder::~Encoder()
+  {;}
+
+
+  VideoWriter *Encoder::makeWriter( const int width, const int height, const float frameRate, int numStreams )
   {
-    Finish();
+    return new VideoWriter( _outFormat, _codec, width, height, frameRate, numStreams );
+  }
+
+  //============================================================================================
+
+  VideoWriter::VideoWriter( AVOutputFormat  *outFormat,
+                             AVCodec *codec,
+                             const int width, const int height, const float frameRate, int numStreams )
+  : _codec( codec ),
+    _width(width), _height(height),
+    _frameRate( frameRate ), _numStreams(numStreams),
+    _outFormatContext( avformat_alloc_context() ),
+    _vosts()
+  {
+    _outFormatContext->oformat = outFormat;
+
+    // Add video streams
+    for( int i = 0; i < _numStreams; i++ ) {
+      _vosts.push_back( shared_ptr<OutputStream>(new OutputStream( _outFormatContext, _codec, _width, _height, _frameRate )) );
+    }
+
   }
 
 
-  bool Encoder::InitFile( const std::string &inputFile, const std::string &container, const AVCodecID codec, int numStreams)
+  VideoWriter::~VideoWriter()
   {
-    // Initialize libavcodec
-    avcodec_register_all();
-    av_register_all();					// Initializes libavformat
+    close();
 
-    if (container == std::string("auto")) {
-      _pOutFormat = av_guess_format(NULL, inputFile.c_str(), NULL);
-    } else {
-      _pOutFormat = av_guess_format(container.c_str(), NULL, NULL);
-    }
-
-    if (_pOutFormat == nullptr ) {
-      cerr << "Unable to determine output format." << endl;
-      return false;
-    }
-
-    cout << "Using container format " << _pOutFormat->name << " (" << _pOutFormat->long_name << ")" << endl;
-
-    // allocate context
-    _pFormatContext = avformat_alloc_context();
-    if (!_pFormatContext) {
-      cerr << "Unable to allocate avformat context" << endl;
-      Free();
-      return false;
-    }
-
-    _pFormatContext->oformat = _pOutFormat;
-    memcpy(_pFormatContext->filename, inputFile.c_str(), std::min(inputFile.size(), sizeof(_pFormatContext->filename)));
-
-    AVCodecID codec_id = codec;
-    if( codec == AV_CODEC_ID_NONE ) codec_id = _pOutFormat->video_codec;;
-
-    // Add video stream
-    for( int i = 0; i < numStreams; i++ ) {
-      auto idx = AddVideoStream( codec_id );
-      if( idx < 0 ) {
-        cerr << "Failed to add video stream" << endl;
-        Free();
-        return false;
-      }
-    }
+    if (_outFormatContext) av_free(_outFormatContext);
+  }
 
 
-    for( auto const vost : _vosts ) {
-      if( !vost->open() ) {
-        cerr << "Couldn't open stream..." << endl;
-        return false;
-      }
-    }
+  bool VideoWriter::open( const std::string &inputFile )
+  //, const std::string &container, const AVCodecID codec, int numStreams)
+  {
+    assert( _outFormatContext != nullptr );
 
-    av_dump_format(_pFormatContext, 0, inputFile.c_str(), 1);
+    //memcpy(_outFormatContext->filename, inputFile.c_str(), std::min(inputFile.size(), sizeof(_outFormatContext->filename)));
 
-    if (avio_open(&_pFormatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
+    av_dump_format(_outFormatContext, 0, inputFile.c_str(), 1);
+
+    if (avio_open(&_outFormatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
       cerr << "Cannot open file" << endl;
-      Free();
+      //Free();
       return false;
     }
 
-    avformat_write_header(_pFormatContext, NULL);
+    return ( avformat_write_header(_outFormatContext, NULL) == 0 );
+  }
+
+
+
+  bool VideoWriter::close()
+  {
+    if(_outFormatContext) {
+      cerr << "Writing trailer" << endl;
+      av_write_trailer(_outFormatContext);
+    }
+
+    if (!(_outFormatContext->flags & AVFMT_NOFILE) && _outFormatContext->pb) {
+      avio_close(_outFormatContext->pb);
+    }
 
     return true;
   }
 
 
-
-  bool Encoder::Finish()
+  bool VideoWriter::addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream )
   {
-    bool res = true;
+    auto packet = _vosts.at(stream)->addFrame(frame, frameNum);
 
-    if (_pFormatContext) {
-      cerr << "Writing trailer" << endl;
-      av_write_trailer(_pFormatContext);
-      Free();
+    if( !packet ) {
+      return false;
     }
 
-    return res;
-  }
+    auto result = av_interleaved_write_frame(_outFormatContext, packet);
+    delete packet;
 
-
-  void Encoder::Free()
-  {
-    bool res = true;
-
-    if (_pFormatContext)
-    {
-      // close video stream
-      // Free the OutputStreams.
-
-      // for(size_t i = 0; i < _pFormatContext->nb_streams; i++) {
-      //   av_freep(&_pFormatContext->streams[i]->codec);
-      //   av_freep(&_pFormatContext->streams[i]);
-      // }
-
-      if (!(_pFormatContext->flags & AVFMT_NOFILE) && _pFormatContext->pb) {
-        avio_close(_pFormatContext->pb);
-      }
-
-      // Free the stream.
-      av_free(_pFormatContext);
-      _pFormatContext = NULL;
+    if( result < 0 ) {
+      std::cerr << "Error writing interleaved frame" << std::endl;
+      return false;
     }
+
+    return true;
+
   }
 
 
 
-    int Encoder::AddVideoStream( AVCodecID codec_id )
-    {
 
-      shared_ptr<OutputStream> stream( new OutputStream( _pFormatContext ));
-
-      if( !stream->init( codec_id, _width, _height, _frameRate ) ) {
-        return -1;
-      }
-
-      _vosts.push_back( stream );
-
-      //avcodec_parameters_to_context( st->codec, st->codecpar );
-
-      // Some formats want stream headers to be separate.
-      // if(pContext->oformat->flags & AVFMT_GLOBALHEADER)
-      // {
-      // 	pCodecCxt->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-      // }
-      return _vosts.size()-1;
-    }
-
-
-
-//
-//   void Encoder::CloseVideo(AVFormatContext *pContext, OutputStream *ost)
-//   {
-// //    avcodec_close(ost->enc);
-//
-//     // if (pCurrentPicture)
-//     // {
-//     //   if (pCurrentPicture->data)
-//     //   {
-//     //     av_free(pCurrentPicture->data[0]);
-//     //     pCurrentPicture->data[0] = NULL;
-//     //   }
-//     //   av_free(pCurrentPicture);
-//     //   pCurrentPicture = NULL;
-//     // }
-//     //
-//     // if (pVideoEncodeBuffer)
-//     // {
-//     //   av_free(pVideoEncodeBuffer);
-//     //   pVideoEncodeBuffer = NULL;
-//     // }
-//     // nSizeVideoEncodeBuffer = 0;
-//   }
-
-
-
-
-      bool Encoder::AddFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream )
-      {
-        bool res = true;
-        int nOutputSize = 0;
-        AVCodecContext *pVideoCodec = NULL;
-
-        auto ost = _vosts.at(stream);
-
-        if (ost && frame && frame->data[0]) {
-          //pVideoCodec = _pVideoStream->codec;
-          ost->addFrame( frame, frameNum );
-        }
-
-        return res;
-      }
 
 
 

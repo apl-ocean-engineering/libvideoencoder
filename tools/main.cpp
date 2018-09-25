@@ -5,6 +5,7 @@ using namespace std;
 
 #include "libvideoencoder/VideoEncoder.h"
 using libvideoencoder::Encoder;
+using libvideoencoder::VideoWriter;
 
 void setPixel(AVFrame *pFrame, short x, short y, short red, short green, short blue ) {
 
@@ -16,19 +17,29 @@ void setPixel(AVFrame *pFrame, short x, short y, short red, short green, short b
 
 }
 
-int main( int argc, char **argv ) {
+
+static void fillFrame( AVFrame *frame, unsigned int width, unsigned int height ) {
+  for( unsigned int x = 0; x < width; ++x  ) {
+    for( unsigned int y = 0; y < height; ++y ) {
+      setPixel( frame, x, y, rand() % 256, rand() % 256, rand() % 256  );
+    }
+  }
+}
+
+int main( int argc, char **argv )
+{
 
   const int Width=320, Height=240;
   const int NumStreams = 2;
   const float FrameRate = 30.0;
-  Encoder encoder(Width, Height, FrameRate);
 
-  auto result = encoder.InitFile("/tmp/test.mov", "auto", AV_CODEC_ID_PRORES, NumStreams );
-  if( !result ) {
+  shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
+  shared_ptr<VideoWriter> writer( encoder->makeWriter(Width, Height, FrameRate, NumStreams) );
+
+  if( !writer->open( "/tmp/test.mov" ) ) {
     std::cerr << "Unable to initialize encoder." << std::endl;
     exit(-1);
   }
-
 
   AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
 	if ( !frame )	{
@@ -53,15 +64,10 @@ int main( int argc, char **argv ) {
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
     for( int s = 0; s < NumStreams; s++ ) {
-    // Fill buffer with random noise
-      for( unsigned int x = 0; x < Width; ++x  ) {
-        for( unsigned int y = 0; y < Height; ++y ) {
-          setPixel( frame, x, y, rand() % 256, rand() % 256, rand() % 256  );
-        }
-      }
+      fillFrame( frame, Width, Height );
 
-    encoder.AddFrame( frame, frameNum, s );
-  }
+      writer->addFrame( frame, frameNum, s );
+    }
   }
 
   av_frame_free( &frame );
