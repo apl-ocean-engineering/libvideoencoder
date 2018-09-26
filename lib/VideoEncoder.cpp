@@ -51,28 +51,22 @@ namespace libvideoencoder {
   {;}
 
 
-  VideoWriter *Encoder::makeWriter( const int width, const int height, const float frameRate, int numStreams )
+  VideoWriter *Encoder::makeWriter( )
   {
-    return new VideoWriter( _outFormat, _codec, width, height, frameRate, numStreams );
+    return new VideoWriter( _outFormat, _codec );
   }
 
   //============================================================================================
 
   VideoWriter::VideoWriter( AVOutputFormat  *outFormat,
-                             AVCodec *codec,
-                             const int width, const int height, const float frameRate, int numStreams )
+                             AVCodec *codec )
   : _codec( codec ),
-    _width(width), _height(height),
-    _frameRate( frameRate ), _numStreams(numStreams),
+    // _width(width), _height(height),
+    // _frameRate( frameRate ), _numStreams(numStreams),
     _outFormatContext( avformat_alloc_context() ),
-    _vosts()
+    _streams()
   {
     _outFormatContext->oformat = outFormat;
-
-    // Add video streams
-    for( int i = 0; i < _numStreams; i++ ) {
-      _vosts.push_back( shared_ptr<OutputStream>(new OutputStream( _outFormatContext, _codec, _width, _height, _frameRate )) );
-    }
 
   }
 
@@ -82,6 +76,27 @@ namespace libvideoencoder {
     close();
 
     if (_outFormatContext) av_free(_outFormatContext);
+  }
+
+
+  size_t VideoWriter::addVideoTrack( const int width, const int height, const float frameRate, int numStreams )
+  {
+    size_t idx = _streams.size();
+
+    // Add video streams
+    for( int i = 0; i < numStreams; i++ ) {
+      _streams.push_back( shared_ptr<OutputTrack>(new VideoTrack( _outFormatContext, _codec, width, height, frameRate )) );
+    }
+
+    return idx;
+  }
+
+  size_t VideoWriter::addDataTrack(  )
+  {
+    size_t idx = _streams.size();
+    _streams.push_back( shared_ptr<OutputTrack>(new DataTrack( _outFormatContext )) );
+
+    return idx;
   }
 
 
@@ -119,20 +134,34 @@ namespace libvideoencoder {
     return true;
   }
 
-
   bool VideoWriter::addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream )
   {
-    auto packet = _vosts.at(stream)->addFrame(frame, frameNum);
+    assert( _outFormatContext );
+    assert( stream < _streams.size() );
+    assert( stream < _outFormatContext->nb_streams );
+
+    int result;
+
+    // Encoding
+    auto packet = _streams.at(stream)->addFrame(frame, frameNum);
 
     if( !packet ) {
       return false;
     }
 
+    return addPacket( packet );
+  }
+
+  bool VideoWriter::addPacket(AVPacket* packet )
+  {
+    assert( _outFormatContext );
+    assert( packet->stream_index < _outFormatContext->nb_streams );
+
     auto result = av_interleaved_write_frame(_outFormatContext, packet);
-    delete packet;
+    av_packet_free( &packet );
 
     if( result < 0 ) {
-      std::cerr << "Error writing interleaved frame" << std::endl;
+      std::cerr << "Error writing interleaved packet" << std::endl;
       return false;
     }
 

@@ -34,7 +34,9 @@ int main( int argc, char **argv )
   const float FrameRate = 30.0;
 
   shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
-  shared_ptr<VideoWriter> writer( encoder->makeWriter(Width, Height, FrameRate, NumStreams) );
+  shared_ptr<VideoWriter> writer( encoder->makeWriter() );
+
+  size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
 
   if( !writer->open( "/tmp/test.mov" ) ) {
     std::cerr << "Unable to initialize encoder." << std::endl;
@@ -66,7 +68,7 @@ int main( int argc, char **argv )
     for( int s = 0; s < NumStreams; s++ ) {
       fillFrame( frame, Width, Height );
 
-      writer->addFrame( frame, frameNum, s );
+      writer->addFrame( frame, frameNum, idx+s );
     }
   }
 
