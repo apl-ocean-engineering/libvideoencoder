@@ -37,7 +37,7 @@ TEST(TestMakeSampleTwoTrackVideo, goodData) {
   shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
   shared_ptr<VideoWriter> writer( encoder->makeWriter(Width, Height, FrameRate, NumStreams) );
 
-  ASSERT_TRUE( writer->open( "/tmp/test.mov" ) ) << "Unable to initialize encoder.";
+  ASSERT_TRUE( writer->open( "/tmp/test_twotracks.mov" ) ) << "Unable to initialize encoder.";
 
   AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
 	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
