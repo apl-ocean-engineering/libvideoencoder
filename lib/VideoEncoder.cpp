@@ -124,10 +124,14 @@ namespace libvideoencoder {
   {
     if(_outFormatContext) {
       cerr << "Writing trailer" << endl;
-      av_write_trailer(_outFormatContext);
+      auto result = av_write_trailer(_outFormatContext);
+      if( result != 0 ) {
+        cerr << "Error writing AVIO trailer: " << std::hex << result;
+      }
     }
 
     if (!(_outFormatContext->flags & AVFMT_NOFILE) && _outFormatContext->pb) {
+      cerr << "Closing avio";
       avio_close(_outFormatContext->pb);
     }
 

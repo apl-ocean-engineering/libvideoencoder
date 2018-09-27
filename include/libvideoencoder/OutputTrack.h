@@ -67,7 +67,7 @@ namespace libvideoencoder {
 
     virtual ~DataTrack();
 
-    virtual AVPacket *addFrame( AVFrame *frame, int frameNum ) {;}
+    virtual AVPacket *addFrame( AVFrame *frame, int frameNum ) { return nullptr; }
 
   protected:
 
