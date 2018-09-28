@@ -10,6 +10,10 @@ FFmpeg simple VideoWriter
 
 #include <iostream>
 
+extern "C" {
+  #include <libavutil/dict.h>
+}
+
 #include "libvideoencoder/VideoEncoder.h"
 
 #include "libvideoencoder/utils.h"
@@ -115,7 +119,16 @@ namespace libvideoencoder {
       return false;
     }
 
-    return ( avformat_write_header(_outFormatContext, NULL) == 0 );
+    // AVDictionary *dict = nullptr;
+    //av_dict_set_int( &dict, "write_tmcd", 1, 0 );
+
+    av_dict_set( &_outFormatContext->metadata, "timecode", "00:00:00.00", 0 );
+
+    auto result = avformat_write_header(_outFormatContext, nullptr );
+
+    // av_dict_free( &dict );
+
+    return (result == 0);
   }
 
 

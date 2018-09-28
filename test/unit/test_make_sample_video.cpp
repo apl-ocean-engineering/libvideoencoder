@@ -42,12 +42,12 @@ const string Extension("mov");
 
 TEST(TestMakeSampleVideo, oneVideoTracks) {
 
-  shared_ptr<Encoder> encoder( new Encoder( "mp4", AV_CODEC_ID_PRORES ) );
+  shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
   shared_ptr<VideoWriter> writer( encoder->makeWriter() );
 
   size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
 
-  ASSERT_TRUE( writer->open( "/tmp/test_onevideo.mp4" ) ) << "Unable to initialize encoder.";
+  ASSERT_TRUE( writer->open( "/tmp/test_onevideo.mov" ) ) << "Unable to initialize encoder.";
 
   AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
 	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
@@ -75,12 +75,12 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
 
 TEST(TestMakeSampleVideo, twoVideoTracks) {
 
-  shared_ptr<Encoder> encoder( new Encoder( "mp4", AV_CODEC_ID_PRORES ) );
+  shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
   shared_ptr<VideoWriter> writer( encoder->makeWriter() );
 
   size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
 
-  ASSERT_TRUE( writer->open( "/tmp/test_twovideo.mp4" ) ) << "Unable to initialize encoder.";
+  ASSERT_TRUE( writer->open( "/tmp/test_twovideo.mov" ) ) << "Unable to initialize encoder.";
 
   AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
 	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;

@@ -59,6 +59,8 @@ namespace libvideoencoder {
     _enc->time_base.num = 100;
 
     _stream->time_base = _enc->time_base;
+    _stream->avg_frame_rate.num = int(frameRate*100);
+    _stream->avg_frame_rate.den = 100;
 
     {
       const enum AVPixelFormat *pixFmt = codec->pix_fmts;
@@ -223,7 +225,7 @@ namespace libvideoencoder {
     {
     }
 
-    // 
+    //
     // AVPacket *DataTrack::addFrame( AVFrame *frame, int frameNum )
     // {
     //
