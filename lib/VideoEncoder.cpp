@@ -7,6 +7,7 @@ FFmpeg simple VideoWriter
 #include <stdint.h>
 #include <math.h>
 #include <algorithm>
+#include <ctime>
 
 #include <iostream>
 
@@ -46,8 +47,6 @@ namespace libvideoencoder {
 
     _codec = avcodec_find_encoder( codec_id );
     assert( _codec != nullptr );   // Should be an exception?
-
-    //avcodec_register( _codec );
   }
 
 
@@ -122,7 +121,14 @@ namespace libvideoencoder {
     // AVDictionary *dict = nullptr;
     //av_dict_set_int( &dict, "write_tmcd", 1, 0 );
 
-    av_dict_set( &_outFormatContext->metadata, "timecode", "00:00:00.00", 0 );
+    // Set
+    {
+      std::time_t t = std::time(nullptr);
+      char mbstr[100];
+      std::strftime(mbstr, sizeof(mbstr), "%H:%M:%S.00", std::localtime(&t));
+
+      av_dict_set( &_outFormatContext->metadata, "timecode", mbstr, 0 );
+    }
 
     auto result = avformat_write_header(_outFormatContext, nullptr );
 
