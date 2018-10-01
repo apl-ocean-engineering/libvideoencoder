@@ -8,6 +8,7 @@ extern "C"
   #include <libavutil/avutil.h>
 }
 
+#include <mutex>
 #include <vector>
 #include <string>
 #include <memory>
@@ -53,6 +54,7 @@ namespace libvideoencoder {
 
     std::vector< std::shared_ptr<OutputTrack> > _streams;
 
+    std::mutex _writeMutex;
 
     // Free all resourses.
     void Free();

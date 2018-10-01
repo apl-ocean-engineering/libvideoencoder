@@ -180,13 +180,18 @@ namespace libvideoencoder {
     assert( _outFormatContext );
     assert( packet->stream_index < _outFormatContext->nb_streams );
 
-    auto result = av_interleaved_write_frame(_outFormatContext, packet);
-    av_packet_free( &packet );
+    {
+      std::lock_guard<std::mutex> guard(_writeMutex);
+      auto result = av_interleaved_write_frame(_outFormatContext, packet);
+      av_packet_free( &packet );
 
-    if( result < 0 ) {
-      std::cerr << "Error writing interleaved packet" << std::endl;
-      return false;
+      if( result < 0 ) {
+        std::cerr << "Error writing interleaved packet" << std::endl;
+        return false;
+      }
     }
+
+
 
     return true;
 

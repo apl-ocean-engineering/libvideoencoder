@@ -45,7 +45,7 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
   shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
   shared_ptr<VideoWriter> writer( encoder->makeWriter() );
 
-  size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
+  size_t idx = writer->addVideoTrack( Width, Height, FrameRate );
 
   ASSERT_TRUE( writer->open( "/tmp/test_onevideo.mov" ) ) << "Unable to initialize encoder.";
 
@@ -61,12 +61,8 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
   const int numFrames = 240;
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
-
-    for( int s = idx; s < idx+NumStreams; s++ ) {
-      fillFrame( frame, Width, Height );
-
-      writer->addFrame( frame, frameNum, s );
-    }
+    fillFrame( frame, Width, Height );
+    writer->addFrame( frame, frameNum );
   }
 
   av_frame_free( &frame );
