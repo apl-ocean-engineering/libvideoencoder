@@ -91,7 +91,7 @@ TEST(TestMakeSampleVideo, twoVideoTracks) {
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
-    for( int s = idx; s < idx+NumStreams; s++ ) {
+    for( size_t s = idx; s < idx+NumStreams; s++ ) {
       fillFrame( frame, Width, Height );
 
       writer->addFrame( frame, frameNum, s );
@@ -126,7 +126,7 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
-    for( int s = idx; s < idx+NumStreams; s++ ) {
+    for( size_t s = idx; s < idx+NumStreams; s++ ) {
       fillFrame( frame, Width, Height );
 
       writer->addFrame( frame, frameNum, s );

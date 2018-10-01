@@ -10,8 +10,6 @@ extern "C"
 
 #include <assert.h>
 
-#include "libvideoencoder/utils.h"
-
 
 namespace libvideoencoder {
 

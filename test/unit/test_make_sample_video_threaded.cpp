@@ -74,11 +74,11 @@ TEST(TestMakeSampleVideo, twoVideoTracksThreaded) {
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
-    for( int s = idx; s < idx+NumStreams; s++ ) {
+    for( size_t s = idx; s < idx+NumStreams; s++ ) {
       threads[s].reset( new std::thread( &addFrame, writer, frameNum, s ) );
     }
 
-    for( int s = idx; s < idx+NumStreams; s++ ) {
+    for( size_t s = idx; s < idx+NumStreams; s++ ) {
       threads[s]->join();
       threads[s].release();
     }

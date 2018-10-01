@@ -17,8 +17,6 @@ extern "C" {
 
 #include "libvideoencoder/VideoEncoder.h"
 
-#include "libvideoencoder/utils.h"
-
 
 namespace libvideoencoder {
   using namespace std;
