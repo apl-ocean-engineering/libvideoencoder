@@ -40,6 +40,9 @@ namespace libvideoencoder {
 
   protected:
 
+    void dumpEncoderOptions( AVCodecContext *enc );
+
+
     AVCodecContext *_enc;
 
     /* pts of the next frame that will be generated */
@@ -52,7 +55,6 @@ namespace libvideoencoder {
 
     // float t, tincr, tincr2;
     struct SwsContext *_swsCtx;
-
     // struct SwrContext *swr_ctx;
   };
 

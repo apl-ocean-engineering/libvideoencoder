@@ -93,15 +93,7 @@ namespace libvideoencoder {
     }
 
     // //st->codecpar->format = AV_PIX_FMT_YUV420P;
-    if (_enc->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-      // Just for testing, we also add B frames
-      //pCodecCxt->max_b_frames = 2;
-    } else if (_enc->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-      /* Needed to avoid using macroblocks in which some coeffs overflow.
-      This does not happen with normal video, it just happens here as
-      the motion of the chroma plane does not match the luma plane. */
-      //pCodecCxt->mb_decision = 2;
-    } else if (_enc->codec_id == AV_CODEC_ID_PRORES ) {
+    if (_enc->codec_id == AV_CODEC_ID_PRORES ) {
 
       // For ProRes
       // 0 = Proxy
@@ -114,93 +106,32 @@ namespace libvideoencoder {
       _enc->flags |= AV_CODEC_FLAG_QSCALE;
       _enc->global_quality = FF_QP2LAMBDA * qscale;
 
-    //   auto res = av_opt_set_int( _enc->priv_data, "qscale", 4, 0);
-    // if(res != 0) {
-    //   char buf[80];
-    //   av_strerror(res, buf, 79);
-    //   std::cerr << "Error setting option \"qscale\": " << buf << std::endl;
-    // }
+      // auto res = av_opt_set_int( _enc->priv_data, "bits_per_mb", 8192, 0);
+      // if(res != 0) {
+      //   char buf[80];
+      //   av_strerror(res, buf, 79);
+      //   std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
+      // }
 
-      auto res = av_opt_set_int( _enc->priv_data, "bits_per_mb", 8192, 0);
+      auto res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
       if(res != 0) {
         char buf[80];
         av_strerror(res, buf, 79);
         std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
       }
-    //  av_opt_set( _enc, "lt", "", 0);
 
-
-    res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
-    if(res != 0) {
-      char buf[80];
-      av_strerror(res, buf, 79);
-      std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
-    }
-
-//     {
-//         // Query the results!
-//         int64_t val = 0;
-//         auto res = av_opt_get_int( _enc->priv_data, "qscale", 0, &val );
-//         if( res == 0 ) {
-//         std::cerr << "QScale set to " << val << endl;
-//       } else {
-//         char buf[80];
-//         av_strerror(res, buf, 79);
-//         std::cerr << "Error querying option \"qscale\": " << buf << std::endl;
-//       }
-//
-//         val = 0;
-//         res = av_opt_get_int( _enc->priv_data, "bits_per_mb", 0, &val );
-//         if( res == 0 ) {
-//           std::cerr << "bits_per_mb set to " << val << endl;
-//         } else {
-//           char buf[80];
-//           av_strerror(res, buf, 79);
-//           std::cerr << "Error querying option \"bits_per_mb\": " << buf << std::endl;
-//         }
-//
-//         unsigned char *out;
-//         av_opt_get( _enc->priv_data, "profile", 0, &out );
-//         if( res == 0 ) {
-//           std::cerr << "Profile set to " << (char *)out << endl;
-//         } else {
-//           char buf[80];
-//           av_strerror(res, buf, 79);
-//           std::cerr << "Error querying option \"profile\": " << buf << std::endl;
-//         }
-// }
+      // dumpEncoderOptions( _enc );
 
     }
 
     {
-      // AVDictionary *options = NULL;
-      // av_dict_set(&options, "qscale", "4", 0);
-      // av_dict_set(&options, "bits_per_mb", "8000", 0);
-      // //av_dict_set(&options, "profile", "standard", 0);
       auto ret = avcodec_open2(_enc, _enc->codec, nullptr);
-
-      // if( av_dict_count(options) > 0 ) {
-      //   std::cerr << "Didn't understand " << av_dict_count(options) << " options" << endl;
-      //   AVDictionaryEntry *t = NULL;
-      //   while (t = av_dict_get(options, "", t, AV_DICT_IGNORE_SUFFIX)) {
-      //     std::cerr << "  -- Didn't understand: " << t->key << " with value " << t->value << endl;
-      //   }
-      // }
-      //
-      // av_dict_free(&options);
 
       if (ret < 0) {
         std::cerr << "Could not open video codec"; //: " <<  av_err2str(ret) << std::endl;
       }
 
     }
-
-    // Configure codec options
-    // if (_enc->codec_id == AV_CODEC_ID_PRORES ) {
-    //
-    //
-    // }
-
 
     {
       auto ret = avcodec_parameters_from_context(_stream->codecpar, _enc);
@@ -267,7 +198,7 @@ namespace libvideoencoder {
     // Encode
     AVPacket *packet = av_packet_alloc();
     av_init_packet(packet);
-    
+
     packet->buf = av_buffer_ref(_encodedData);
     packet->size = _encodedData->size;
     packet->data = NULL;
@@ -295,38 +226,74 @@ namespace libvideoencoder {
   }
 
 
+  void VideoTrack::dumpEncoderOptions( AVCodecContext *enc ) {
 
-        //====================================================================================
-
-    DataTrack::DataTrack( AVFormatContext *oc )
-    : OutputTrack( oc ),
-      _numSamples(0)
     {
-      // DON'T USE _enc
-
-      _stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
-      _stream->codecpar->codec_id = AV_CODEC_ID_BIN_DATA; //AV_CODEC_ID_NONE;
-      _stream->codecpar->codec_tag = MKTAG('g', 'p', 'm', 'd');
-      //_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
-      // Base time is microseconds?
-      _stream->time_base.den = 1000000;
-      _stream->time_base.num = 1;
-
-
-      const struct AVCodecTag* const* codec_tags = oc->oformat->codec_tag;
-      for( int i = 0; codec_tags[i] && codec_tags[i]->id != AV_CODEC_ID_NONE; ++i ) {
-        cerr << "ID: " << codec_tags[i]->id << " ; tag: " << std::hex << codec_tags[i]->tag << endl;
+      // Query the results!
+      int64_t val = 0;
+      auto res = av_opt_get_int( enc->priv_data, "qscale", 0, &val );
+      if( res == 0 ) {
+        std::cerr << "QScale set to " << val << endl;
+      } else {
+        char buf[80];
+        av_strerror(res, buf, 79);
+        std::cerr << "Error querying option \"qscale\": " << buf << std::endl;
       }
 
-      //std::cout << "Codec time base: " << _enc->time_base.num << "/" << _enc->time_base.den << std::endl;
-      std::cout << "Data Track time base: " << _stream->time_base.num << "/" << _stream->time_base.den << std::endl;
+      val = 0;
+      res = av_opt_get_int( enc->priv_data, "bits_per_mb", 0, &val );
+      if( res == 0 ) {
+        std::cerr << "bits_per_mb set to " << val << endl;
+      } else {
+        char buf[80];
+        av_strerror(res, buf, 79);
+        std::cerr << "Error querying option \"bits_per_mb\": " << buf << std::endl;
+      }
 
+      unsigned char *out;
+      av_opt_get( enc->priv_data, "profile", 0, &out );
+      if( res == 0 ) {
+        std::cerr << "Profile set to " << (char *)out << endl;
+      } else {
+        char buf[80];
+        av_strerror(res, buf, 79);
+        std::cerr << "Error querying option \"profile\": " << buf << std::endl;
+      }
+    }
+  }
+
+
+  //====================================================================================
+
+  DataTrack::DataTrack( AVFormatContext *oc )
+  : OutputTrack( oc ),
+    _numSamples(0)
+  {
+    // DON'T USE _enc
+
+    _stream->codecpar->codec_type = AVMEDIA_TYPE_DATA;
+    _stream->codecpar->codec_id = AV_CODEC_ID_BIN_DATA; //AV_CODEC_ID_NONE;
+    _stream->codecpar->codec_tag = MKTAG('g', 'p', 'm', 'd');
+    //_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
+    // Base time is microseconds?
+    _stream->time_base.den = 1000000;
+    _stream->time_base.num = 1;
+
+
+    const struct AVCodecTag* const* codec_tags = oc->oformat->codec_tag;
+    for( int i = 0; codec_tags[i] && codec_tags[i]->id != AV_CODEC_ID_NONE; ++i ) {
+      cerr << "ID: " << codec_tags[i]->id << " ; tag: " << std::hex << codec_tags[i]->tag << endl;
     }
 
-    DataTrack::~DataTrack()
-    {
-    }
+    //std::cout << "Codec time base: " << _enc->time_base.num << "/" << _enc->time_base.den << std::endl;
+    std::cout << "Data Track time base: " << _stream->time_base.num << "/" << _stream->time_base.den << std::endl;
+
+  }
+
+  DataTrack::~DataTrack()
+  {
+  }
 
     //
     // AVPacket *DataTrack::addFrame( AVFrame *frame, int frameNum )
