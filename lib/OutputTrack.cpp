@@ -4,6 +4,8 @@ extern "C"
   #include <libavformat/avformat.h>
   #include <libswscale/swscale.h>
   #include <libavutil/mathematics.h>
+  #include <libavutil/opt.h>
+  #include <libavutil/error.h>
 }
 
 #include <iostream>
@@ -106,18 +108,99 @@ namespace libvideoencoder {
       // 1 = LT
       // 2 = normal
       // 3 = HQ
-      _enc->profile = 2;
+      _enc->profile = 2; //PRORES_PROFILE_STANDARD;
+
+      const int qscale = 4;
+      _enc->flags |= AV_CODEC_FLAG_QSCALE;
+      _enc->global_quality = FF_QP2LAMBDA * qscale;
+
+    //   auto res = av_opt_set_int( _enc->priv_data, "qscale", 4, 0);
+    // if(res != 0) {
+    //   char buf[80];
+    //   av_strerror(res, buf, 79);
+    //   std::cerr << "Error setting option \"qscale\": " << buf << std::endl;
+    // }
+
+      auto res = av_opt_set_int( _enc->priv_data, "bits_per_mb", 8192, 0);
+      if(res != 0) {
+        char buf[80];
+        av_strerror(res, buf, 79);
+        std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
+      }
+    //  av_opt_set( _enc, "lt", "", 0);
+
+
+    res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
+    if(res != 0) {
+      char buf[80];
+      av_strerror(res, buf, 79);
+      std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
     }
 
-    // AVDictionary *opt = NULL;
-    // av_dict_copy(&opt, opt_arg, 0);
+//     {
+//         // Query the results!
+//         int64_t val = 0;
+//         auto res = av_opt_get_int( _enc->priv_data, "qscale", 0, &val );
+//         if( res == 0 ) {
+//         std::cerr << "QScale set to " << val << endl;
+//       } else {
+//         char buf[80];
+//         av_strerror(res, buf, 79);
+//         std::cerr << "Error querying option \"qscale\": " << buf << std::endl;
+//       }
+//
+//         val = 0;
+//         res = av_opt_get_int( _enc->priv_data, "bits_per_mb", 0, &val );
+//         if( res == 0 ) {
+//           std::cerr << "bits_per_mb set to " << val << endl;
+//         } else {
+//           char buf[80];
+//           av_strerror(res, buf, 79);
+//           std::cerr << "Error querying option \"bits_per_mb\": " << buf << std::endl;
+//         }
+//
+//         unsigned char *out;
+//         av_opt_get( _enc->priv_data, "profile", 0, &out );
+//         if( res == 0 ) {
+//           std::cerr << "Profile set to " << (char *)out << endl;
+//         } else {
+//           char buf[80];
+//           av_strerror(res, buf, 79);
+//           std::cerr << "Error querying option \"profile\": " << buf << std::endl;
+//         }
+// }
+
+    }
+
     {
+      // AVDictionary *options = NULL;
+      // av_dict_set(&options, "qscale", "4", 0);
+      // av_dict_set(&options, "bits_per_mb", "8000", 0);
+      // //av_dict_set(&options, "profile", "standard", 0);
       auto ret = avcodec_open2(_enc, _enc->codec, nullptr);
-      //av_dict_free(&opt);
+
+      // if( av_dict_count(options) > 0 ) {
+      //   std::cerr << "Didn't understand " << av_dict_count(options) << " options" << endl;
+      //   AVDictionaryEntry *t = NULL;
+      //   while (t = av_dict_get(options, "", t, AV_DICT_IGNORE_SUFFIX)) {
+      //     std::cerr << "  -- Didn't understand: " << t->key << " with value " << t->value << endl;
+      //   }
+      // }
+      //
+      // av_dict_free(&options);
+
       if (ret < 0) {
         std::cerr << "Could not open video codec"; //: " <<  av_err2str(ret) << std::endl;
       }
+
     }
+
+    // Configure codec options
+    // if (_enc->codec_id == AV_CODEC_ID_PRORES ) {
+    //
+    //
+    // }
+
 
     {
       auto ret = avcodec_parameters_from_context(_stream->codecpar, _enc);
@@ -182,7 +265,9 @@ namespace libvideoencoder {
     assert( _encodedData );
 
     // Encode
-    AVPacket *packet = new AVPacket;
+    AVPacket *packet = av_packet_alloc();
+    av_init_packet(packet);
+    
     packet->buf = av_buffer_ref(_encodedData);
     packet->size = _encodedData->size;
     packet->data = NULL;
