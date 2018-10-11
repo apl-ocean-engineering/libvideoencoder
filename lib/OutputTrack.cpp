@@ -157,7 +157,6 @@ namespace libvideoencoder {
 
   AVPacket *VideoTrack::encodeFrame( AVFrame *frame, int frameNum )
   {
-
     if ( !frame || !frame->data[0]) return nullptr;
 
     // Lazy-create the swscaler RGB to YUV420P.
@@ -204,20 +203,26 @@ namespace libvideoencoder {
     packet->size = _encodedData->size;
     packet->data = NULL;
 
-    int nOutputSize = 0;
-
     // Encode frame to packet->
-    // Todo:  switch to avcodec_send_frame / avcodec_receive_packet
-    auto result = avcodec_encode_video2(_enc, packet, frame, &nOutputSize);
+    {
+      auto result = avcodec_send_frame( _enc, frame );
+      if( result != 0 ) {
+        std::cerr << "Error in avcodec_send_frame: " << result << endl;
+        return nullptr;
+      }
+    }
+
+    {
+      auto result = avcodec_receive_packet( _enc, packet );
+      if( result != 0 ) {
+        std::cerr << "Error in avcodec_receive_packet: " << result << endl;
+        return nullptr;
+      }
+    }
 
     packet->stream_index = _stream->index;
     packet->pts          = frame->pts;
     packet->dts          = frame->pts;
-
-    if ((result < 0) || (nOutputSize <= 0)) {
-      std::cerr << "Error encoding video" << std::endl;
-      return nullptr;
-    }
 
     av_packet_rescale_ts( packet, _enc->time_base, _stream->time_base );
 

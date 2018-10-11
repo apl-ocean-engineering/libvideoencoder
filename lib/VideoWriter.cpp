@@ -145,7 +145,7 @@ namespace libvideoencoder {
     return res;
   }
 
-  bool VideoWriter::addPacket(AVPacket* packet )
+  bool VideoWriter::addPacket(AVPacket *packet )
   {
     assert( _outFormatContext );
     assert( packet->stream_index < _outFormatContext->nb_streams );
