@@ -117,6 +117,7 @@ namespace libvideoencoder {
       if(res != 0) {
         char buf[80];
         av_strerror(res, buf, 79);
+
         std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
       }
 
@@ -154,7 +155,7 @@ namespace libvideoencoder {
   }
 
 
-  AVPacket *VideoTrack::addFrame( AVFrame *frame, int frameNum )
+  AVPacket *VideoTrack::encodeFrame( AVFrame *frame, int frameNum )
   {
 
     if ( !frame || !frame->data[0]) return nullptr;

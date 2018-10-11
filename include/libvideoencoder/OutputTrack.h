@@ -19,7 +19,7 @@ namespace libvideoencoder {
 
     virtual ~OutputTrack();
 
-    virtual AVPacket *addFrame( AVFrame *frame, int frameNum ) = 0;
+    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum ) = 0;
 
   protected:
 
@@ -34,11 +34,11 @@ namespace libvideoencoder {
 
     virtual ~VideoTrack();
 
-    virtual AVPacket *addFrame( AVFrame *frame, int frameNum );
-
-    AVPacket *encode( AVFrame *frame );
+    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum );
 
   protected:
+
+    AVPacket *encode( AVFrame *frame );
 
     void dumpEncoderOptions( AVCodecContext *enc );
 
@@ -67,7 +67,7 @@ namespace libvideoencoder {
 
     virtual ~DataTrack();
 
-    virtual AVPacket *addFrame( AVFrame *frame, int frameNum ) { return nullptr; }
+    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum ) { return nullptr; }
 
   protected:
 
