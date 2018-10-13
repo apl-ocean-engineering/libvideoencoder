@@ -127,20 +127,19 @@ namespace libvideoencoder {
 
     // Encoding
     // measure time to encode
-    std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+  //  std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
     auto packet = _streams.at(stream)->encodeFrame(frame, frameNum);
-    auto dt = std::chrono::system_clock::now() - startTime;
-
-    std::cerr << "Encoding took " << float(dt.count())/1e6 << " ms" << endl;
+  //  auto dt = std::chrono::system_clock::now() - startTime;
+  //  std::cerr << "Encoding took " << float(dt.count())/1e6 << " ms" << endl;
 
     if( !packet ) {
       return false;
     }
 
-    startTime = std::chrono::system_clock::now();
+  //  startTime = std::chrono::system_clock::now();
     auto res = addPacket( packet );
-    dt = std::chrono::system_clock::now() - startTime;
-    std::cerr << "Writing took " << float(dt.count())/1e6 << " ms" << endl;;
+  //  dt = std::chrono::system_clock::now() - startTime;
+  //  std::cerr << "Writing took " << float(dt.count())/1e6 << " ms" << endl;;
 
     return res;
   }

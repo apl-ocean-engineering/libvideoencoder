@@ -102,7 +102,7 @@ namespace libvideoencoder {
       // 3 = HQ
       _enc->profile = 2; //PRORES_PROFILE_STANDARD;
 
-      const int qscale = 4;
+      const int qscale = 6;
       _enc->flags |= AV_CODEC_FLAG_QSCALE;
       _enc->global_quality = FF_QP2LAMBDA * qscale;
 
@@ -159,6 +159,12 @@ namespace libvideoencoder {
   {
     if ( !frame || !frame->data[0]) return nullptr;
 
+    frame->pts = frameNum;
+
+    if ( _enc->pix_fmt == (AVPixelFormat)frame->format )
+      return encode(frame);
+
+
     // Lazy-create the swscaler RGB to YUV420P.
     if (!_swsCtx) {
       _swsCtx = sws_getContext(_enc->width, _enc->height,
@@ -169,25 +175,19 @@ namespace libvideoencoder {
       assert( _swsCtx );
     }
 
-    frame->pts = frameNum;
-
-    if ( _enc->pix_fmt != (AVPixelFormat)frame->format )	{
-
-      if( !_scaledFrame ) {
-        // Lazy-allocate frame if you're going to be scaling
-        _scaledFrame = alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
-        assert(_scaledFrame);
-      }
-
-      // Convert RGB to YUV.
-      auto res = sws_scale(_swsCtx, frame->data, frame->linesize, 0,
-                            _enc->height, _scaledFrame->data, _scaledFrame->linesize);
-
-      _scaledFrame->pts = frame->pts;
-      return encode(_scaledFrame);
+    if( !_scaledFrame ) {
+      // Lazy-allocate frame if you're going to be scaling
+      _scaledFrame = alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
+      assert(_scaledFrame);
     }
 
-    return encode(frame);
+    // Convert RGB to YUV.
+    auto res = sws_scale(_swsCtx, frame->data, frame->linesize, 0,
+                          _enc->height, _scaledFrame->data, _scaledFrame->linesize);
+
+    _scaledFrame->pts = frame->pts;
+
+    return encode(_scaledFrame);
   }
 
 
