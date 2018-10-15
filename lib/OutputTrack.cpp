@@ -282,7 +282,7 @@ namespace libvideoencoder {
     _stream->codecpar->codec_tag = MKTAG('g', 'p', 'm', 'd');
     //_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
-    // Base time is microseconds?
+    // Base time is microseconds
     _stream->time_base.den = 1000000;
     _stream->time_base.num = 1;
 
