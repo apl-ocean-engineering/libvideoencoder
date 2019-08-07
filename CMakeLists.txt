@@ -13,6 +13,13 @@ endif()
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+## This is required on OSX?
+IF(APPLE)
+		# Fix linking on 10.14+. See https://stackoverflow.com/questions/54068035
+		LINK_DIRECTORIES(/usr/local/lib)
+		fips_include_directories( /usr/local/include )
+ENDIF()
+
 fips_begin_module( videoencoder )
 
   fips_src( lib *.cpp )
