@@ -22,9 +22,13 @@ namespace libvideoencoder {
   class VideoWriter {
   public:
 
-    VideoWriter( AVOutputFormat  *outFormat,
-                 AVCodec *_codec );
+    VideoWriter( const std::string &container, const AVCodecID codec = AV_CODEC_ID_NONE );
+
+    VideoWriter( const std::string &container, const std::string &codec);
+
     ~VideoWriter();
+
+    void describeCodec( AVCodecID codec_id );
 
     size_t addVideoTrack( const int width, const int height, const float frameRate, int numStreams = 1 );
     size_t addDataTrack( );

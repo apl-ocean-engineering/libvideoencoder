@@ -67,6 +67,8 @@ namespace libvideoencoder {
 
     virtual ~DataTrack();
 
+    // Raw data doesn't require "encoding", it can be written straight to
+    // an AVPacket with av_packet_from_data()
     virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum ) { return nullptr; }
 
   protected:

@@ -15,22 +15,51 @@ extern "C" {
   #include <libavutil/dict.h>
 }
 
-#include "libvideoencoder/VideoEncoder.h"
+#include "libvideoencoder/VideoWriter.h"
 
 
 namespace libvideoencoder {
   using namespace std;
 
-  VideoWriter::VideoWriter( AVOutputFormat  *outFormat,
-                             AVCodec *codec )
-  : _codec( codec ),
-    // _width(width), _height(height),
-    // _frameRate( frameRate ), _numStreams(numStreams),
+
+  VideoWriter::VideoWriter( const std::string &container, const AVCodecID codec_id )
+    : _codec(nullptr),
     _outFormatContext( avformat_alloc_context() ),
     _streams()
   {
-    _outFormatContext->oformat = outFormat;
+    av_log_set_level( AV_LOG_VERBOSE );
 
+    avcodec_register_all();
+    av_register_all();
+
+    _outFormatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
+    assert(_outFormatContext->oformat != nullptr );  // Should be an exception?
+
+    _codec = avcodec_find_encoder( codec_id );
+    assert( _codec != nullptr );   // Should be an exception?
+
+    describeCodec( _codec->id );
+  }
+
+
+
+  VideoWriter::VideoWriter( const std::string &container, const std::string &codec_name )
+    : _codec(nullptr),
+    _outFormatContext( avformat_alloc_context() ),
+    _streams()
+  {
+    av_log_set_level( AV_LOG_VERBOSE );
+
+    avcodec_register_all();
+    av_register_all();
+
+    _outFormatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
+    assert(_outFormatContext->oformat != nullptr );  // Should be an exception?
+
+    _codec = avcodec_find_encoder_by_name( codec_name.c_str() );
+    assert( _codec != nullptr );   // Should be an exception?
+
+    describeCodec( _codec->id );
   }
 
 
@@ -40,6 +69,19 @@ namespace libvideoencoder {
 
     if (_outFormatContext) av_free(_outFormatContext);
   }
+
+  void VideoWriter::describeCodec( AVCodecID codec_id ) {
+    // cout << "Using container format " << _outFormat->name << " (" << _outFormat->long_name << ")" << endl;
+    //
+    const AVCodecDescriptor *codecDesc = avcodec_descriptor_get(codec_id);
+    if( codecDesc ) {
+      std::cout << "Using codec " << codec_id << ": " << codecDesc->name << " (" << codecDesc->long_name << ")"  << std::endl;
+    } else {
+      std::cerr << "Could not retrieve codec description for " << codec_id << std::endl;
+    }
+  }
+
+
 
 
   size_t VideoWriter::addVideoTrack( const int width, const int height, const float frameRate, int numStreams )

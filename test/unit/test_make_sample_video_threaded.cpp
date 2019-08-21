@@ -7,8 +7,7 @@
 #include <iostream>
 using namespace std;
 
-#include "libvideoencoder/VideoEncoder.h"
-using libvideoencoder::Encoder;
+#include "libvideoencoder/VideoWriter.h"
 using libvideoencoder::VideoWriter;
 
 
@@ -61,8 +60,7 @@ void addFrame( const shared_ptr<VideoWriter> &writer, int frameNum, int stream )
 
 TEST(TestMakeSampleVideo, twoVideoTracksThreaded) {
 
-  shared_ptr<Encoder> encoder( new Encoder( "mov", AV_CODEC_ID_PRORES ) );
-  shared_ptr<VideoWriter> writer( encoder->makeWriter() );
+  shared_ptr<VideoWriter> writer( new VideoWriter( "mov", AV_CODEC_ID_PRORES ) );
 
   size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
 
