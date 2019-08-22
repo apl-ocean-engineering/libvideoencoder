@@ -6,6 +6,7 @@ FFmpeg simple VideoWriter
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include <assert.h>
 #include <algorithm>
 #include <ctime>
 
