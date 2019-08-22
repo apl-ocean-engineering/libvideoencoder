@@ -22,6 +22,8 @@ namespace libvideoencoder {
 
     virtual ~OutputTrack();
 
+    int streamNum() const { return _stream->index; }
+
   protected:
 
     VideoWriter &_writer;
@@ -70,6 +72,7 @@ namespace libvideoencoder {
 
     virtual ~DataTrack();
 
+    char *alloc( size_t len );
     bool writeData( void *data, size_t len, int64_t pts = 0 );
 
   protected:

@@ -324,6 +324,11 @@ namespace libvideoencoder {
   DataTrack::~DataTrack()
   {;}
 
+  char *DataTrack::alloc( size_t len )
+  {
+    return (char *)av_malloc(len);
+  }
+
   bool DataTrack::writeData( void *data, size_t len, int64_t pts )
   {
     AVPacket *pkt = av_packet_alloc();
