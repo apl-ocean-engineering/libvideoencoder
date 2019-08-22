@@ -1,6 +1,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <string>
 #include <iostream>
 using namespace std;
@@ -8,6 +9,8 @@ using namespace std;
 #include "libvideoencoder/VideoWriter.h"
 using libvideoencoder::VideoWriter;
 
+#include "libvideoencoder/OutputTrack.h"
+using libvideoencoder::VideoTrack;
 
 
 static void setPixel(AVFrame *pFrame, short x, short y, short red, short green, short blue ) {
@@ -42,25 +45,17 @@ const string Extension("mov");
 TEST(TestMakeSampleVideo, oneVideoTracks) {
 
   shared_ptr<VideoWriter> writer( new VideoWriter( "mov", AV_CODEC_ID_PRORES ) );
-
-  size_t idx = writer->addVideoTrack( Width, Height, FrameRate );
+  shared_ptr<VideoTrack> track( new VideoTrack( *writer, Width, Height, FrameRate ) );
 
   ASSERT_TRUE( writer->open( "/tmp/test_onevideo.mov" ) ) << "Unable to initialize encoder.";
 
-  AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
-	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
+  AVFrame *frame = track->makeFrame();
 
-  frame->width = Width;
-  frame->height = Height;
-  frame->format = AV_PIX_FMT_RGB24;
-	auto res = av_frame_get_buffer(frame, 0);
-	ASSERT_GE(res, 0) << "Cannot allocate buffer";
-
-  const int numFrames = 240;
+  const int numFrames = 10;
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
     fillFrame( frame, Width, Height );
-    writer->addFrame( frame, frameNum );
+    track->addFrame( frame, frameNum );
   }
 
   av_frame_free( &frame );
@@ -70,28 +65,21 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
 TEST(TestMakeSampleVideo, twoVideoTracks) {
 
   shared_ptr<VideoWriter> writer( new VideoWriter( "mov", AV_CODEC_ID_PRORES ) );
-
-  size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
+  std::array<shared_ptr<VideoTrack>,2> tracks = { shared_ptr<VideoTrack>(new VideoTrack( *writer, Width, Height, FrameRate) ),
+                                                  shared_ptr<VideoTrack>(new VideoTrack( *writer, Width, Height, FrameRate) ) };
 
   ASSERT_TRUE( writer->open( "/tmp/test_twovideo.mov" ) ) << "Unable to initialize encoder.";
 
-  AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
-	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
+  AVFrame *frame = tracks[0]->makeFrame();
 
-  frame->width = Width;
-  frame->height = Height;
-  frame->format = AV_PIX_FMT_RGB24;
-	auto res = av_frame_get_buffer(frame, 0);
-	ASSERT_GE(res, 0) << "Cannot allocate buffer";
-
-  const int numFrames = 240;
+  const int numFrames = 10;
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
-    for( size_t s = idx; s < idx+NumStreams; s++ ) {
+    for( size_t s = 0; s < NumStreams; ++s ) {
       fillFrame( frame, Width, Height );
 
-      writer->addFrame( frame, frameNum, s );
+      tracks[s]->addFrame( frame, frameNum );
     }
   }
 
@@ -100,48 +88,48 @@ TEST(TestMakeSampleVideo, twoVideoTracks) {
 }
 
 
-TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
-
-  shared_ptr<VideoWriter> writer( new VideoWriter( "mov", AV_CODEC_ID_PRORES ) );
-
-  size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
-  size_t dataTrk = writer->addDataTrack();
-
-  ASSERT_TRUE( writer->open( "/tmp/test_twovideo_onedata." + Extension ) ) << "Unable to initialize encoder.";
-
-  AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
-	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
-
-  frame->width = Width;
-  frame->height = Height;
-  frame->format = AV_PIX_FMT_RGB24;
-	auto res = av_frame_get_buffer(frame, 0);
-	ASSERT_GE(res, 0) << "Cannot allocate buffer";
-
-  const int numFrames = 240;
-
-  for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
-
-    for( size_t s = idx; s < idx+NumStreams; s++ ) {
-      fillFrame( frame, Width, Height );
-
-      writer->addFrame( frame, frameNum, s );
-    }
-
-    {
-      // And data track
-      AVPacket *pkt = av_packet_alloc();
-      av_new_packet( pkt, 8 );
-
-      pkt->stream_index = dataTrk;
-      pkt->pts = int64_t(1000000 / FrameRate * frameNum);
-      pkt->dts = pkt->pts;
-
-      writer->addPacket( pkt );
-    }
-
-  }
-
-  av_frame_free( &frame );
-
-}
+// TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
+//
+//   shared_ptr<VideoWriter> writer( new VideoWriter( "mov", AV_CODEC_ID_PRORES ) );
+//
+//   size_t idx = writer->addVideoTrack( Width, Height, FrameRate, NumStreams );
+//   size_t dataTrk = writer->addDataTrack();
+//
+//   ASSERT_TRUE( writer->open( "/tmp/test_twovideo_onedata." + Extension ) ) << "Unable to initialize encoder.";
+//
+//   AVFrame *frame = av_frame_alloc();   ///avcodec_alloc_frame();
+// 	ASSERT_NE( frame, nullptr )	<< "Cannot create frame" ;
+//
+//   frame->width = Width;
+//   frame->height = Height;
+//   frame->format = AV_PIX_FMT_RGB24;
+// 	auto res = av_frame_get_buffer(frame, 0);
+// 	ASSERT_GE(res, 0) << "Cannot allocate buffer";
+//
+//   const int numFrames = 240;
+//
+//   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
+//
+//     for( size_t s = idx; s < idx+NumStreams; s++ ) {
+//       fillFrame( frame, Width, Height );
+//
+//       writer->addFrame( frame, frameNum, s );
+//     }
+//
+//     {
+//       // And data track
+//       AVPacket *pkt = av_packet_alloc();
+//       av_new_packet( pkt, 8 );
+//
+//       pkt->stream_index = dataTrk;
+//       pkt->pts = int64_t(1000000 / FrameRate * frameNum);
+//       pkt->dts = pkt->pts;
+//
+//       writer->addPacket( pkt );
+//     }
+//
+//   }
+//
+//   av_frame_free( &frame );
+//
+// }

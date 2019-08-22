@@ -24,32 +24,34 @@ typedef struct AVCodecTag {
 namespace libvideoencoder {
 
 
-  static AVFrame *alloc_frame(enum AVPixelFormat pix_fmt, int width, int height)
-  {
-      AVFrame *picture;
-      int ret;
-      picture = av_frame_alloc();
-      if (!picture)
-          return NULL;
-      picture->format = pix_fmt;
-      picture->width  = width;
-      picture->height = height;
-      /* allocate the buffers for the frame data */
-      ret = av_frame_get_buffer(picture, 32);
-      if (ret < 0) {
-          fprintf(stderr, "Could not allocate frame data.\n");
-          exit(1);
-      }
-      return picture;
-  }
+  // static AVFrame *alloc_frame(enum AVPixelFormat pix_fmt, int width, int height)
+  // {
+  //     AVFrame *picture;
+  //     int ret;
+  //     picture = av_frame_alloc();
+  //     if (!picture)
+  //         return NULL;
+  //     picture->format = pix_fmt;
+  //     picture->width  = width;
+  //     picture->height = height;
+  //     /* allocate the buffers for the frame data */
+  //     ret = av_frame_get_buffer(picture, 32);
+  //     if (ret < 0) {
+  //         fprintf(stderr, "Could not allocate frame data.\n");
+  //         exit(1);
+  //     }
+  //     return picture;
+  // }
 
 
 
-  OutputTrack::OutputTrack( AVFormatContext *oc )
-        : _stream( avformat_new_stream( oc, NULL ) )
+  OutputTrack::OutputTrack( VideoWriter &writer )
+        : _writer(writer),
+          _stream( avformat_new_stream( _writer.outputFormatContext(), NULL ) ),
+          _startTime( std::chrono::system_clock::now() )
   {
     assert( _stream != nullptr );
-    _stream->id = oc->nb_streams-1;
+    _stream->id = _writer.outputFormatContext()->nb_streams-1;
   }
 
   OutputTrack::~OutputTrack()
@@ -59,9 +61,9 @@ namespace libvideoencoder {
 
   //====================================================================================
 
-  VideoTrack::VideoTrack( AVFormatContext *oc, AVCodec *codec, int width, int height, float frameRate )
-  : OutputTrack( oc ),
-    _enc( avcodec_alloc_context3(codec) ),
+  VideoTrack::VideoTrack( VideoWriter &writer, int width, int height, float frameRate )
+  : OutputTrack( writer ),
+    _enc( avcodec_alloc_context3(writer.codec()) ),
     _numSamples(0),
     _scaledFrame(nullptr),
     _encodedData( av_buffer_alloc(10000000) ),
@@ -71,7 +73,7 @@ namespace libvideoencoder {
 
     _enc->frame_number = 0;
     _enc->codec_type = AVMEDIA_TYPE_VIDEO;
-    _enc->codec_id = codec->id;
+    _enc->codec_id = _writer.codec()->id;
     _enc->width    = width;
     _enc->height   = height;
 
@@ -83,7 +85,7 @@ namespace libvideoencoder {
     _stream->avg_frame_rate.den = 100;
 
     {
-      const enum AVPixelFormat *pixFmt = codec->pix_fmts;
+      const enum AVPixelFormat *pixFmt = _writer.codec()->pix_fmts;
       // cout << "This codec supports these pixel formats: ";
       // for( int i = 0; pixFmt[i] != -1; i++ ) {
       //   cout << pixFmt[i] << " ";
@@ -155,9 +157,33 @@ namespace libvideoencoder {
   }
 
 
-  AVPacket *VideoTrack::encodeFrame( AVFrame *frame, int frameNum )
+  AVFrame *VideoTrack::makeFrame(enum AVPixelFormat pix_fmt)
   {
-    if ( !frame || !frame->data[0]) return nullptr;
+    AVFrame *picture;
+    int ret;
+
+    picture = av_frame_alloc();
+    if (!picture) return nullptr;
+
+    picture->format = pix_fmt;
+    picture->width  = _enc->width;
+    picture->height = _enc->height;
+
+    /* allocate the buffers for the frame data */
+    ret = av_frame_get_buffer(picture, 32);
+
+    if (ret < 0) {
+        fprintf(stderr, "Could not allocate frame data.\n");
+        exit(1);
+    }
+
+    return picture;
+  }
+
+
+  bool VideoTrack::addFrame( AVFrame *frame, int frameNum )
+  {
+    if ( !frame || !frame->data[0]) return false;
 
     frame->pts = frameNum;
 
@@ -177,7 +203,7 @@ namespace libvideoencoder {
 
     if( !_scaledFrame ) {
       // Lazy-allocate frame if you're going to be scaling
-      _scaledFrame = alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
+      _scaledFrame = makeFrame(_enc->pix_fmt);  //alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
       assert(_scaledFrame);
     }
 
@@ -187,13 +213,11 @@ namespace libvideoencoder {
 
     _scaledFrame->pts = frame->pts;
 
-    return encode(_scaledFrame);
+    return encode( _scaledFrame );
   }
 
-
-  AVPacket *VideoTrack::encode( AVFrame *frame ) {
-
-    assert( _encodedData );
+  bool VideoTrack::encode( AVFrame *frame )
+  {
 
     // Encode
     AVPacket *packet = av_packet_alloc();
@@ -208,7 +232,7 @@ namespace libvideoencoder {
       auto result = avcodec_send_frame( _enc, frame );
       if( result != 0 ) {
         std::cerr << "Error in avcodec_send_frame: " << result << endl;
-        return nullptr;
+        return false;
       }
     }
 
@@ -216,7 +240,7 @@ namespace libvideoencoder {
       auto result = avcodec_receive_packet( _enc, packet );
       if( result != 0 ) {
         std::cerr << "Error in avcodec_receive_packet: " << result << endl;
-        return nullptr;
+        return false;
       }
     }
 
@@ -228,7 +252,7 @@ namespace libvideoencoder {
 
     _numSamples++;
 
-    return packet;
+    return _writer.writePacket(packet);
   }
 
 
@@ -271,8 +295,8 @@ namespace libvideoencoder {
 
   //====================================================================================
 
-  DataTrack::DataTrack( AVFormatContext *oc )
-  : OutputTrack( oc ),
+  DataTrack::DataTrack( VideoWriter &writer )
+  : OutputTrack( writer ),
     _numSamples(0)
   {
     // DON'T USE _enc
@@ -287,7 +311,7 @@ namespace libvideoencoder {
     _stream->time_base.num = 1;
 
 
-    const struct AVCodecTag* const* codec_tags = oc->oformat->codec_tag;
+    const struct AVCodecTag* const* codec_tags = _writer.outputFormatContext()->oformat->codec_tag;
     for( int i = 0; codec_tags[i] && codec_tags[i]->id != AV_CODEC_ID_NONE; ++i ) {
       cerr << "ID: " << codec_tags[i]->id << " ; tag: " << std::hex << codec_tags[i]->tag << endl;
     }
@@ -298,80 +322,26 @@ namespace libvideoencoder {
   }
 
   DataTrack::~DataTrack()
+  {;}
+
+  bool DataTrack::writeData( void *data, size_t len, int64_t pts )
   {
+    AVPacket *pkt = av_packet_alloc();
+    av_packet_from_data(pkt, (uint8_t *)data, len );
+
+    pkt->stream_index = _stream->index;
+
+    if( pts == 0 ) {
+      std::chrono::microseconds timePt =  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - _startTime);
+      pts = timePt.count();
+    }
+
+    pkt->dts = pts;
+    pkt->pts = pkt->dts;
+
+    //LOG(WARNING) << "   packet->pts " << pkt->pts;
+
+    return _writer.writePacket(pkt);
   }
-
-    //
-    // AVPacket *DataTrack::addFrame( AVFrame *frame, int frameNum )
-    // {
-    //
-    //   if ( !frame || !frame->data[0]) return nullptr;
-    //
-    // }
-
-    //   // Lazy-create the swscaler RGB to YUV420P.
-    //   if (!_swsCtx) {
-    //     _swsCtx = sws_getContext(_enc->width, _enc->height,
-    //                               (AVPixelFormat)frame->format,              // Assume frame format will be consistent...
-    //                               _enc->width, _enc->height,
-    //                               _enc->pix_fmt,
-    //                               SWS_BICUBLIN, NULL, NULL, NULL);
-    //     assert( _swsCtx );
-    //   }
-    //
-    //   frame->pts = frameNum;
-    //
-    //   if ( _enc->pix_fmt != (AVPixelFormat)frame->format )	{
-    //
-    //     if( !_scaledFrame ) {
-    //       // Lazy-allocate frame if you're going to be scaling
-    //       _scaledFrame = alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
-    //       assert(_scaledFrame);
-    //     }
-    //
-    //     // Convert RGB to YUV.
-    //     auto res = sws_scale(_swsCtx, frame->data, frame->linesize, 0,
-    //                           _enc->height, _scaledFrame->data, _scaledFrame->linesize);
-    //
-    //     _scaledFrame->pts = frame->pts;
-    //     return encode(_scaledFrame);
-    //   }
-    //
-    //   return encode(frame);
-    // }
-    //
-    //
-    // AVPacket *VideoTrack::encode( AVFrame *frame ) {
-    //
-    //   assert( _encodedData );
-    //
-    //   // Encode
-    //   AVPacket *packet = new AVPacket;
-    //   packet->buf = av_buffer_ref(_encodedData);
-    //   packet->size = _encodedData->size;
-    //   packet->data = NULL;
-    //
-    //   int nOutputSize = 0;
-    //
-    //   // Encode frame to packet->
-    //   // Todo:  switch to avcodec_send_frame / avcodec_receive_packet
-    //   auto result = avcodec_encode_video2(_enc, packet, frame, &nOutputSize);
-    //
-    //   packet->Track_index = _stream->index;
-    //   packet->pts          = frame->pts;
-    //   packet->dts          = frame->pts;
-    //
-    //   if ((result < 0) || (nOutputSize <= 0)) {
-    //     std::cerr << "Error encoding video" << std::endl;
-    //     return nullptr;
-    //   }
-    //
-    //   av_packet_rescale_ts( packet, _enc->time_base, _stream->time_base );
-    //
-    //   _numSamples++;
-    //
-    //   return packet;
-    // }
-
 
 };

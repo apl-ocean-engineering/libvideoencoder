@@ -24,8 +24,7 @@ namespace libvideoencoder {
 
   VideoWriter::VideoWriter( const std::string &container, const AVCodecID codec_id )
     : _codec(nullptr),
-    _outFormatContext( avformat_alloc_context() ),
-    _streams()
+      _outFormatContext( avformat_alloc_context() )
   {
     av_log_set_level( AV_LOG_VERBOSE );
 
@@ -45,8 +44,7 @@ namespace libvideoencoder {
 
   VideoWriter::VideoWriter( const std::string &container, const std::string &codec_name )
     : _codec(nullptr),
-    _outFormatContext( avformat_alloc_context() ),
-    _streams()
+      _outFormatContext( avformat_alloc_context() )
   {
     av_log_set_level( AV_LOG_VERBOSE );
 
@@ -82,27 +80,38 @@ namespace libvideoencoder {
   }
 
 
+  // size_t VideoWriter::addStream( AVStream *stream )
+  // {
+  //   size_t idx = _streams.size();
+  //
+  //   // Add video streams
+  //   for( int i = 0; i < numStreams; i++ ) {
+  //     _streams.push_back( shared_ptr<OutputTrack>(new VideoTrack( _outFormatContext, _codec, width, height, frameRate )) );
+  //   }
+  //
+  //   return idx;
+  // }
 
 
-  size_t VideoWriter::addVideoTrack( const int width, const int height, const float frameRate, int numStreams )
-  {
-    size_t idx = _streams.size();
-
-    // Add video streams
-    for( int i = 0; i < numStreams; i++ ) {
-      _streams.push_back( shared_ptr<OutputTrack>(new VideoTrack( _outFormatContext, _codec, width, height, frameRate )) );
-    }
-
-    return idx;
-  }
-
-  size_t VideoWriter::addDataTrack(  )
-  {
-    size_t idx = _streams.size();
-    _streams.push_back( shared_ptr<OutputTrack>(new DataTrack( _outFormatContext )) );
-
-    return idx;
-  }
+  // size_t VideoWriter::addVideoTrack( const int width, const int height, const float frameRate, int numStreams )
+  // {
+  //   size_t idx = _streams.size();
+  //
+  //   // Add video streams
+  //   for( int i = 0; i < numStreams; i++ ) {
+  //     _streams.push_back( shared_ptr<OutputTrack>(new VideoTrack( _outFormatContext, _codec, width, height, frameRate )) );
+  //   }
+  //
+  //   return idx;
+  // }
+  //
+  // size_t VideoWriter::addDataTrack(  )
+  // {
+  //   size_t idx = _streams.size();
+  //   _streams.push_back( shared_ptr<OutputTrack>(new DataTrack( _outFormatContext )) );
+  //
+  //   return idx;
+  // }
 
 
   bool VideoWriter::open( const std::string &inputFile )
@@ -158,35 +167,35 @@ namespace libvideoencoder {
 
     return true;
   }
+  //
+  // bool VideoWriter::addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream )
+  // {
+  //   assert( _outFormatContext );
+  //   assert( stream < _streams.size() );
+  //   assert( stream < _outFormatContext->nb_streams );
+  //
+  //   int result;
+  //
+  //   // Encoding
+  //   // measure time to encode
+  // //  std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+  //   auto packet = _streams.at(stream)->encodeFrame(frame, frameNum);
+  // //  auto dt = std::chrono::system_clock::now() - startTime;
+  // //  std::cerr << "Encoding took " << float(dt.count())/1e6 << " ms" << endl;
+  //
+  //   if( !packet ) {
+  //     return false;
+  //   }
+  //
+  // //  startTime = std::chrono::system_clock::now();
+  //   auto res = addPacket( packet );
+  // //  dt = std::chrono::system_clock::now() - startTime;
+  // //  std::cerr << "Writing took " << float(dt.count())/1e6 << " ms" << endl;;
+  //
+  //   return res;
+  // }
 
-  bool VideoWriter::addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream )
-  {
-    assert( _outFormatContext );
-    assert( stream < _streams.size() );
-    assert( stream < _outFormatContext->nb_streams );
-
-    int result;
-
-    // Encoding
-    // measure time to encode
-  //  std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-    auto packet = _streams.at(stream)->encodeFrame(frame, frameNum);
-  //  auto dt = std::chrono::system_clock::now() - startTime;
-  //  std::cerr << "Encoding took " << float(dt.count())/1e6 << " ms" << endl;
-
-    if( !packet ) {
-      return false;
-    }
-
-  //  startTime = std::chrono::system_clock::now();
-    auto res = addPacket( packet );
-  //  dt = std::chrono::system_clock::now() - startTime;
-  //  std::cerr << "Writing took " << float(dt.count())/1e6 << " ms" << endl;;
-
-    return res;
-  }
-
-  bool VideoWriter::addPacket(AVPacket *packet )
+  bool VideoWriter::writePacket(AVPacket *packet )
   {
     assert( _outFormatContext );
     assert( packet->stream_index < _outFormatContext->nb_streams );

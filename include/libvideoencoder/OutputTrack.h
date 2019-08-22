@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 extern "C"
 {
   #include <libavcodec/avcodec.h>
@@ -10,38 +12,42 @@ extern "C"
 
 #include <assert.h>
 
+#include <libvideoencoder/VideoWriter.h>
 
 namespace libvideoencoder {
 
   struct OutputTrack {
 
-    OutputTrack( AVFormatContext *oc );
+    OutputTrack( VideoWriter &writer );
 
     virtual ~OutputTrack();
 
-    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum ) = 0;
-
   protected:
 
+    VideoWriter &_writer;
+
     AVStream *_stream;
+
+    std::chrono::time_point< std::chrono::system_clock > _startTime;
 
   };
 
 
   struct VideoTrack : public OutputTrack {
 
-    VideoTrack( AVFormatContext *oc, AVCodec *codec, int width, int height, float frameRate );
+    VideoTrack( VideoWriter &writer, int width, int height, float frameRate );
 
     virtual ~VideoTrack();
 
-    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum );
+    bool addFrame( AVFrame *frame, int frameNum );
+
+    AVFrame *makeFrame(enum AVPixelFormat pix_fmt = AV_PIX_FMT_RGB24 );
 
   protected:
 
-    AVPacket *encode( AVFrame *frame );
+    bool encode( AVFrame *frame );
 
     void dumpEncoderOptions( AVCodecContext *enc );
-
 
     AVCodecContext *_enc;
 
@@ -51,11 +57,8 @@ namespace libvideoencoder {
 
     AVFrame *_scaledFrame;
     AVBufferRef *_encodedData;
-    //AVFrame *tmp_frame;
 
-    // float t, tincr, tincr2;
     struct SwsContext *_swsCtx;
-    // struct SwrContext *swr_ctx;
   };
 
 
@@ -63,13 +66,11 @@ namespace libvideoencoder {
 
   struct DataTrack : public OutputTrack {
 
-    DataTrack( AVFormatContext *oc );
+    DataTrack( VideoWriter &writer );
 
     virtual ~DataTrack();
 
-    // Raw data doesn't require "encoding", it can be written straight to
-    // an AVPacket with av_packet_from_data()
-    virtual AVPacket *encodeFrame( AVFrame *frame, int frameNum ) { return nullptr; }
+    bool writeData( void *data, size_t len, int64_t pts = 0 );
 
   protected:
 

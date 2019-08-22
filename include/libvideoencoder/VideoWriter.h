@@ -15,7 +15,7 @@ extern "C"
 #include <string>
 #include <memory>
 
-#include "libvideoencoder/OutputTrack.h"
+//#include "libvideoencoder/OutputTrack.h"
 
 namespace libvideoencoder {
 
@@ -30,35 +30,25 @@ namespace libvideoencoder {
 
     void describeCodec( AVCodecID codec_id );
 
-    size_t addVideoTrack( const int width, const int height, const float frameRate, int numStreams = 1 );
-    size_t addDataTrack( );
+    AVFormatContext *outputFormatContext() { return _outFormatContext; }
+    AVCodec *codec()                       { return _codec; }
+
+    // size_t addVideoTrack( const int width, const int height, const float frameRate, int numStreams = 1 );
+    // size_t addDataTrack( );
 
     bool open( const std::string &inputFile );
-
     bool close();
 
-    // Frames are passed to the OutputStream for encoding
-    bool addFrame(AVFrame* frame, unsigned int frameNum, unsigned int stream = 0 );
-
     // Packets are _not_ encoded
-    bool addPacket(AVPacket* pkt );
-
-
+    bool writePacket(AVPacket* pkt );
 
   private:
 
-    // State received from Encoder
     AVOutputFormat  *_outFormat;
     AVCodec *_codec;
-
-    // int _width, _height;
-    // float _frameRate;
-    // int _numStreams;
-
-    // State generated in this module
     AVFormatContext *_outFormatContext;
 
-    std::vector< std::shared_ptr<OutputTrack> > _streams;
+    //std::vector< std::shared_ptr<OutputTrack> > _streams;
 
     std::mutex _writeMutex;
 
