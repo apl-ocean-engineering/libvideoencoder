@@ -44,7 +44,7 @@ namespace libvideoencoder {
 
   private:
 
-    AVOutputFormat  *_outFormat;
+    //AVOutputFormat  *_outFormat;
     AVCodec *_codec;
     AVFormatContext *_outFormatContext;
 
@@ -53,7 +53,7 @@ namespace libvideoencoder {
     std::mutex _writeMutex;
 
     // Free all resourses.
-    void Free();
+    //void Free();
 
   };
 
