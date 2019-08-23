@@ -15,8 +15,6 @@ extern "C"
 #include <string>
 #include <memory>
 
-//#include "libvideoencoder/OutputTrack.h"
-
 namespace libvideoencoder {
 
   class VideoWriter {
@@ -33,9 +31,6 @@ namespace libvideoencoder {
     AVFormatContext *outputFormatContext() { return _outFormatContext; }
     AVCodec *codec()                       { return _codec; }
 
-    // size_t addVideoTrack( const int width, const int height, const float frameRate, int numStreams = 1 );
-    // size_t addDataTrack( );
-
     bool open( const std::string &inputFile );
     bool close();
 
@@ -44,16 +39,11 @@ namespace libvideoencoder {
 
   private:
 
-    //AVOutputFormat  *_outFormat;
     AVCodec *_codec;
     AVFormatContext *_outFormatContext;
 
-    //std::vector< std::shared_ptr<OutputTrack> > _streams;
 
     std::mutex _writeMutex;
-
-    // Free all resourses.
-    //void Free();
 
   };
 
