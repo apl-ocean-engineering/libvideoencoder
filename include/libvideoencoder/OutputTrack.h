@@ -27,8 +27,9 @@ namespace libvideoencoder {
   protected:
 
     VideoWriter &_writer;
-
     AVStream *_stream;
+
+    int _numSamples;
 
     std::chrono::time_point< std::chrono::system_clock > _startTime;
 
@@ -41,9 +42,12 @@ namespace libvideoencoder {
 
     virtual ~VideoTrack();
 
-    bool addFrame( AVFrame *frame, int frameNum );
+    // Allocates an appropriately sized frame
+    // for writing
+    AVFrame *allocateFrame(enum AVPixelFormat pix_fmt = AV_PIX_FMT_RGB24 );
 
-    AVFrame *makeFrame(enum AVPixelFormat pix_fmt = AV_PIX_FMT_RGB24 );
+    bool writeFrame( AVFrame *frame, int frameNum );
+
 
   protected:
 
@@ -52,10 +56,6 @@ namespace libvideoencoder {
     void dumpEncoderOptions( AVCodecContext *enc );
 
     AVCodecContext *_enc;
-
-    /* pts of the next frame that will be generated */
-    // int64_t next_pts;
-    int _numSamples;
 
     AVFrame *_scaledFrame;
     AVBufferRef *_encodedData;
@@ -72,17 +72,13 @@ namespace libvideoencoder {
 
     virtual ~DataTrack();
 
-    char *alloc( size_t len );
-    bool writeData( void *data, size_t len, int64_t pts = 0 );
+    char *allocate( size_t len );
+
+    bool writeData( void *data, size_t len,
+                    const std::chrono::time_point< std::chrono::system_clock > time = std::chrono::system_clock::now() );
 
   protected:
 
-    /* pts of the next frame that will be generated */
-    // int64_t next_pts;
-    int _numSamples;
-
-
-    // struct SwrContext *swr_ctx;
   };
 
 };

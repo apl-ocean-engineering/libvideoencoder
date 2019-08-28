@@ -51,13 +51,13 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
 
   ASSERT_TRUE( writer.open( "/tmp/test_onevideo.mov" ) ) << "Unable to initialize encoder.";
 
-  AVFrame *frame = track.makeFrame();
+  AVFrame *frame = track.allocateFrame();
 
   const int numFrames = 10;
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
     fillFrame( frame, Width, Height );
-    track.addFrame( frame, frameNum );
+    track.writeFrame( frame, frameNum );
   }
 
   av_frame_free( &frame );
@@ -72,7 +72,7 @@ TEST(TestMakeSampleVideo, twoVideoTracks) {
 
   ASSERT_TRUE( writer.open( "/tmp/test_twovideo.mov" ) ) << "Unable to initialize encoder.";
 
-  AVFrame *frame = tracks[0].makeFrame();
+  AVFrame *frame = tracks[0].allocateFrame();
 
   const int numFrames = 10;
 
@@ -81,7 +81,7 @@ TEST(TestMakeSampleVideo, twoVideoTracks) {
     for( size_t s = 0; s < NumStreams; ++s ) {
       fillFrame( frame, Width, Height );
 
-      tracks[s].addFrame( frame, frameNum );
+      tracks[s].writeFrame( frame, frameNum );
     }
   }
 
@@ -100,7 +100,7 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
 
   ASSERT_TRUE( writer.open( "/tmp/test_twovideo_onedata." + Extension ) ) << "Unable to initialize encoder.";
 
-  AVFrame *frame = videoTracks[0].makeFrame();
+  AVFrame *frame = videoTracks[0].allocateFrame();
 
   const int numFrames = 240;
 
@@ -109,12 +109,12 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
     for( size_t s = 0; s < videoTracks.size(); s++ ) {
       fillFrame( frame, Width, Height );
 
-      videoTracks[s].addFrame( frame, frameNum );
+      videoTracks[s].writeFrame( frame, frameNum );
     }
 
     {
       size_t len = rand() % 32;
-      char *data = dataTrack.alloc(len);
+      char *data = dataTrack.allocate(len);
 
       dataTrack.writeData( data, len );
     }

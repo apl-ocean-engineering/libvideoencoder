@@ -46,8 +46,9 @@ namespace libvideoencoder {
 
 
   OutputTrack::OutputTrack( VideoWriter &writer )
-        : _writer(writer),
+        : _writer( writer ),
           _stream( avformat_new_stream( _writer.outputFormatContext(), NULL ) ),
+          _numSamples(0),
           _startTime( std::chrono::system_clock::now() )
   {
     assert( _stream != nullptr );
@@ -64,7 +65,6 @@ namespace libvideoencoder {
   VideoTrack::VideoTrack( VideoWriter &writer, int width, int height, float frameRate )
   : OutputTrack( writer ),
     _enc( avcodec_alloc_context3(writer.codec()) ),
-    _numSamples(0),
     _scaledFrame(nullptr),
     _encodedData( av_buffer_alloc(10000000) ),
     _swsCtx(nullptr)
@@ -153,11 +153,10 @@ namespace libvideoencoder {
     if( _swsCtx ) sws_freeContext( _swsCtx );
     if( _scaledFrame ) av_frame_free( &_scaledFrame );
     if( _enc )      avcodec_close( _enc );
-    //if( _stream )  avformat_free_context( &st );  // Track is destroyed when AVFormatContext is cleaned up
   }
 
 
-  AVFrame *VideoTrack::makeFrame(enum AVPixelFormat pix_fmt)
+  AVFrame *VideoTrack::allocateFrame(enum AVPixelFormat pix_fmt)
   {
     AVFrame *picture;
     int ret;
@@ -181,17 +180,19 @@ namespace libvideoencoder {
   }
 
 
-  bool VideoTrack::addFrame( AVFrame *frame, int frameNum )
+  bool VideoTrack::writeFrame( AVFrame *frame, int frameNum )
   {
     if ( !frame || !frame->data[0]) return false;
 
     frame->pts = frameNum;
 
+    // If image size or format don't need to be changed, jump straight
+    // to encoding
     if ( _enc->pix_fmt == (AVPixelFormat)frame->format )
       return encode(frame);
 
 
-    // Lazy-create the swscaler RGB to YUV420P.
+    // Lazy-allocated the swscaler RGB to YUV420P.
     if (!_swsCtx) {
       _swsCtx = sws_getContext(_enc->width, _enc->height,
                                 (AVPixelFormat)frame->format,              // Assume frame format will be consistent...
@@ -203,7 +204,7 @@ namespace libvideoencoder {
 
     if( !_scaledFrame ) {
       // Lazy-allocate frame if you're going to be scaling
-      _scaledFrame = makeFrame(_enc->pix_fmt);  //alloc_frame(_enc->pix_fmt, _enc->width, _enc->height);
+      _scaledFrame = allocateFrame(_enc->pix_fmt);
       assert(_scaledFrame);
     }
 
@@ -296,8 +297,7 @@ namespace libvideoencoder {
   //====================================================================================
 
   DataTrack::DataTrack( VideoWriter &writer )
-  : OutputTrack( writer ),
-    _numSamples(0)
+  : OutputTrack( writer )
   {
     // DON'T USE _enc
 
@@ -324,25 +324,22 @@ namespace libvideoencoder {
   DataTrack::~DataTrack()
   {;}
 
-  char *DataTrack::alloc( size_t len )
+  char *DataTrack::allocate( size_t len )
   {
     return (char *)av_malloc(len);
   }
 
-  bool DataTrack::writeData( void *data, size_t len, int64_t pts )
+  bool DataTrack::writeData( void *data, size_t len, const std::chrono::time_point< std::chrono::system_clock > time )
   {
     AVPacket *pkt = av_packet_alloc();
     av_packet_from_data(pkt, (uint8_t *)data, len );
 
     pkt->stream_index = _stream->index;
 
-    if( pts == 0 ) {
-      std::chrono::microseconds timePt =  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - _startTime);
-      pts = timePt.count();
-    }
+    std::chrono::microseconds timePt =  std::chrono::duration_cast<std::chrono::microseconds>(time - _startTime);
 
-    pkt->dts = pts;
-    pkt->pts = pkt->dts;
+    pkt->pts = timePt.count();
+    pkt->dts = pkt->pts;
 
     //LOG(WARNING) << "   packet->pts " << pkt->pts;
 

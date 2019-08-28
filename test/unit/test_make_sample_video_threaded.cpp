@@ -43,11 +43,11 @@ const float FrameRate = 30.0;
 const string Extension("mov");
 
 void addFrame( const shared_ptr<VideoTrack> &track, int frameNum, int stream ) {
-  AVFrame *frame = track->makeFrame();
+  AVFrame *frame = track->allocateFrame();
 
   fillFrame( frame, Width, Height );
 
-  track->addFrame( frame, frameNum );
+  track->writeFrame( frame, frameNum );
 
   av_frame_free( &frame );
 

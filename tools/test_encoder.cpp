@@ -47,7 +47,7 @@ int main( int argc, char **argv )
 
   std::cout << "Saving test movie to /tmp/test.mov" << std::endl;
 
-  AVFrame *frame = tracks[0].makeFrame();
+  AVFrame *frame = tracks[0].allocateFrame();
 
   const int numFrames = 240;
 
@@ -56,7 +56,7 @@ int main( int argc, char **argv )
     for( int s = 0; s < NumStreams; s++ ) {
       fillFrame( frame, Width, Height );
 
-      tracks[s].addFrame( frame, frameNum );
+      tracks[s].writeFrame( frame, frameNum );
     }
   }
 
