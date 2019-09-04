@@ -48,6 +48,8 @@ namespace libvideoencoder {
   {
     assert( _enc != nullptr );
 
+    _enc->thread_count = 0;
+
     _enc->frame_number = 0;
     _enc->codec_type = AVMEDIA_TYPE_VIDEO;
     _enc->codec_id = writer.codec()->id;
@@ -241,6 +243,10 @@ namespace libvideoencoder {
       auto result = avcodec_receive_packet( _enc, packet );
       if( result != 0 ) {
         std::cerr << "Error in avcodec_receive_packet: " << result << endl;
+        // if( result == AVERROR(EAGAIN) )
+        //   std::cerr << "    EAGAIN" << std::endl;
+        // else if( result == AVERROR(EINVAL) )
+        //   std::cerr << "    EINVAL" << std::endl;
         return nullptr;
       }
     }
