@@ -54,12 +54,18 @@ namespace libvideoencoder {
     _enc->width    = width;
     _enc->height   = height;
 
-    _enc->time_base.den = int(frameRate * 100.0);
-    _enc->time_base.num = 100;
+    _enc->framerate.num = int( frameRate * 1001 );
+    _enc->framerate.den = 1001;
+
+    _enc->time_base.num = 1001;
+    _enc->time_base.den = int( frameRate * 1001 );
 
     _stream->time_base = _enc->time_base;
-    _stream->avg_frame_rate.num = int(frameRate*100);
-    _stream->avg_frame_rate.den = 100;
+    _stream->avg_frame_rate.den = _enc->time_base.num;
+    av_stream_set_r_frame_rate( _stream, _enc->framerate );
+    _stream->avg_frame_rate = av_stream_get_r_frame_rate( _stream );
+
+
 
     {
       const enum AVPixelFormat *pixFmt = writer.codec()->pix_fmts;
@@ -92,13 +98,13 @@ namespace libvideoencoder {
       //   std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
       // }
 
-      auto res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
-      if(res != 0) {
-        char buf[80];
-        av_strerror(res, buf, 79);
-
-        std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
-      }
+      // auto res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
+      // if(res != 0) {
+      //   char buf[80];
+      //   av_strerror(res, buf, 79);
+      //
+      //   std::cerr << "Error setting option \"profile\": " << buf << std::endl;
+      // }
 
       // dumpEncoderOptions( _enc );
 

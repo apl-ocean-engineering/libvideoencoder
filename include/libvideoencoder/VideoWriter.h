@@ -28,7 +28,7 @@ namespace libvideoencoder {
 
     void describeCodec( AVCodecID codec_id );
 
-    AVFormatContext *outputFormatContext() { return _outFormatContext; }
+    AVFormatContext *outputFormatContext() { return _formatContext; }
     AVCodec *codec()                       { return _codec; }
 
     bool open( const std::string &inputFile );
@@ -40,7 +40,7 @@ namespace libvideoencoder {
   private:
 
     AVCodec *_codec;
-    AVFormatContext *_outFormatContext;
+    AVFormatContext *_formatContext;
 
 
     std::mutex _writeMutex;

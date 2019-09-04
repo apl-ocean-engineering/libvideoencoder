@@ -25,12 +25,12 @@ namespace libvideoencoder {
 
   VideoWriter::VideoWriter( const std::string &container, const AVCodecID codec_id )
     : _codec(nullptr),
-      _outFormatContext( avformat_alloc_context() )
+      _formatContext( avformat_alloc_context() )
   {
     av_log_set_level( AV_LOG_VERBOSE );
 
-    _outFormatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
-    assert(_outFormatContext->oformat != nullptr );  // Should be an exception?
+    _formatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
+    assert(_formatContext->oformat != nullptr );  // Should be an exception?
 
     _codec = avcodec_find_encoder( codec_id );
     assert( _codec != nullptr );   // Should be an exception?
@@ -42,12 +42,12 @@ namespace libvideoencoder {
 
   VideoWriter::VideoWriter( const std::string &container, const std::string &codec_name )
     : _codec(nullptr),
-      _outFormatContext( avformat_alloc_context() )
+      _formatContext( avformat_alloc_context() )
   {
     av_log_set_level( AV_LOG_VERBOSE );
 
-    _outFormatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
-    assert(_outFormatContext->oformat != nullptr );  // Should be an exception?
+    _formatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
+    assert(_formatContext->oformat != nullptr );  // Should be an exception?
 
     _codec = avcodec_find_encoder_by_name( codec_name.c_str() );
     assert( _codec != nullptr );   // Should be an exception?
@@ -60,7 +60,7 @@ namespace libvideoencoder {
   {
     close();
 
-    if (_outFormatContext) av_free(_outFormatContext);
+    if (_formatContext) av_free(_formatContext);
   }
 
   void VideoWriter::describeCodec( AVCodecID codec_id ) {
@@ -78,11 +78,11 @@ namespace libvideoencoder {
 
   bool VideoWriter::open( const std::string &inputFile )
   {
-    assert( _outFormatContext != nullptr );
+    assert( _formatContext != nullptr );
 
-    av_dump_format(_outFormatContext, 0, inputFile.c_str(), 1);
+    av_dump_format(_formatContext, 0, inputFile.c_str(), 1);
 
-    if (avio_open(&_outFormatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
+    if (avio_open(&_formatContext->pb, inputFile.c_str(), AVIO_FLAG_WRITE) < 0)	{
       cerr << "Cannot open file" << endl;
       //Free();
       return false;
@@ -97,10 +97,10 @@ namespace libvideoencoder {
       char mbstr[100];
       std::strftime(mbstr, sizeof(mbstr), "%H:%M:%S.00", std::localtime(&t));
 
-      av_dict_set( &_outFormatContext->metadata, "timecode", mbstr, 0 );
+      av_dict_set( &_formatContext->metadata, "timecode", mbstr, 0 );
     }
 
-    auto result = avformat_write_header(_outFormatContext, nullptr );
+    auto result = avformat_write_header(_formatContext, nullptr );
 
     // av_dict_free( &dict );
 
@@ -111,19 +111,19 @@ namespace libvideoencoder {
 
   bool VideoWriter::close()
   {
-    if( !_outFormatContext ) return false;
-    if( !_outFormatContext->pb  )  return false;
+    if( !_formatContext ) return false;
+    if( !_formatContext->pb  )  return false;
 
     cerr << "Writing trailer" << endl;
-    auto result = av_write_trailer(_outFormatContext);
+    auto result = av_write_trailer(_formatContext);
     if( result != 0 ) {
       cerr << "Error writing AVIO trailer: " << std::hex << result;
     }
 
-    //if (!(_outFormatContext->flags & AVFMT_NOFILE) ) {
+    //if (!(_formatContext->flags & AVFMT_NOFILE) ) {
     cerr << "Closing avio";
-    avio_close(_outFormatContext->pb);
-    _outFormatContext->pb = nullptr;
+    avio_close(_formatContext->pb);
+    _formatContext->pb = nullptr;
     //}
 
     return true;
@@ -131,14 +131,14 @@ namespace libvideoencoder {
 
 
 
-  bool VideoWriter::writePacket(AVPacket *packet )
+  bool VideoWriter::writePacket( AVPacket *packet )
   {
-    assert( _outFormatContext );
-    assert( packet->stream_index < _outFormatContext->nb_streams );
+    assert( _formatContext );
+    assert( packet->stream_index < _formatContext->nb_streams );
 
     {
       std::lock_guard<std::mutex> guard(_writeMutex);
-      auto result = av_interleaved_write_frame(_outFormatContext, packet);
+      auto result = av_interleaved_write_frame(_formatContext, packet);
       av_packet_free( &packet );
 
       if( result < 0 ) {

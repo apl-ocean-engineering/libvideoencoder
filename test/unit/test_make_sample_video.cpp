@@ -102,7 +102,7 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
 
   AVFrame *frame = videoTracks[0].allocateFrame();
 
-  const int numFrames = 240;
+  const int numFrames = 120;
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
