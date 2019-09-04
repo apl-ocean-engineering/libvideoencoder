@@ -29,6 +29,9 @@ namespace libvideoencoder {
   {
     av_log_set_level( AV_LOG_VERBOSE );
 
+    avcodec_register_all();
+    av_register_all();
+
     _formatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
     assert(_formatContext->oformat != nullptr );  // Should be an exception?
 
@@ -45,6 +48,9 @@ namespace libvideoencoder {
       _formatContext( avformat_alloc_context() )
   {
     av_log_set_level( AV_LOG_VERBOSE );
+
+    avcodec_register_all();
+    av_register_all();
 
     _formatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
     assert(_formatContext->oformat != nullptr );  // Should be an exception?
