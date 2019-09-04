@@ -8,7 +8,7 @@ if( NOT FIPS_IMPORT )
 	fips_setup(PROJECT libvideoencoder)
 endif()
 
-#list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+find_package(OpenCV COMPONENTS core REQUIRED)
 
 ## C++ flags applied to all builds
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -22,19 +22,16 @@ ENDIF()
 
 fips_begin_module( videoencoder )
 
+	fips_include_directories(
+		${CMAKE_SOURCE_DIR}/include
+		${OpenCV_INCLUDE_DIRS}
+	)
+
   fips_src( lib *.cpp )
 
-   # fips_libs( ${Boost_LIBRARIES} ${OpenCV_LIBS}
-   #            ${ZLIB_LIBRARIES} ${TINYXML2_LIBRARIES} )
-   # fips_deps( g3logger )
+  fips_libs( ${OpenCV_LIBS} avutil avcodec swscale avformat )
 
-   fips_libs( avutil avcodec swscale avformat )
-
-   fips_include_directories(
-	 	${CMAKE_SOURCE_DIR}/include
-	 )
-
- fips_end_module()
+fips_end_module()
 
 
 if( NOT FIPS_IMPORT )

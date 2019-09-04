@@ -56,7 +56,9 @@ int main( int argc, char **argv )
     for( int s = 0; s < NumStreams; s++ ) {
       fillFrame( frame, Width, Height );
 
-      tracks[s].writeFrame( frame, frameNum );
+      AVPacket *pkt = tracks[s].encodeFrame( frame, frameNum );
+
+      if( pkt ) writer.writePacket( pkt );
     }
   }
 

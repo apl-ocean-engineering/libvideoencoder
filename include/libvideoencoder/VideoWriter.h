@@ -35,7 +35,7 @@ namespace libvideoencoder {
     bool close();
 
     // Packets are _not_ encoded
-    bool writePacket(AVPacket* pkt );
+    bool writePacket( AVPacket* pkt );
 
   private:
 

@@ -39,7 +39,7 @@ static void fillFrame( AVFrame *frame, unsigned int width, unsigned int height )
 
 const int Width=320, Height=240;
 const int NumStreams = 2;
-const float FrameRate = 30.0;
+const float FrameRate = 29.97;
 const string Extension("mov");
 
 
@@ -57,7 +57,7 @@ TEST(TestMakeSampleVideo, oneVideoTracks) {
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
     fillFrame( frame, Width, Height );
-    track.writeFrame( frame, frameNum );
+    writer.writePacket( track.encodeFrame( frame, frameNum ) );
   }
 
   av_frame_free( &frame );
@@ -81,7 +81,7 @@ TEST(TestMakeSampleVideo, twoVideoTracks) {
     for( size_t s = 0; s < NumStreams; ++s ) {
       fillFrame( frame, Width, Height );
 
-      tracks[s].writeFrame( frame, frameNum );
+      writer.writePacket( tracks[s].encodeFrame( frame, frameNum ) );
     }
   }
 
@@ -109,14 +109,14 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
     for( size_t s = 0; s < videoTracks.size(); s++ ) {
       fillFrame( frame, Width, Height );
 
-      videoTracks[s].writeFrame( frame, frameNum );
+      writer.writePacket( videoTracks[s].encodeFrame( frame, frameNum ) );
     }
 
     {
       size_t len = rand() % 32;
       char *data = dataTrack.allocate(len);
 
-      dataTrack.writeData( data, len );
+      writer.writePacket( dataTrack.encodeData( data, len ) );
     }
 
   }

@@ -42,12 +42,12 @@ const int NumStreams = 2;
 const float FrameRate = 30.0;
 const string Extension("mov");
 
-void addFrame( const shared_ptr<VideoTrack> &track, int frameNum, int stream ) {
+void addFrame( const shared_ptr<VideoWriter> &writer, const shared_ptr<VideoTrack> &track, int frameNum, int stream ) {
   AVFrame *frame = track->allocateFrame();
 
   fillFrame( frame, Width, Height );
 
-  track->writeFrame( frame, frameNum );
+  writer->writePacket( track->encodeFrame( frame, frameNum ) );
 
   av_frame_free( &frame );
 
@@ -68,7 +68,7 @@ void addFrame( const shared_ptr<VideoTrack> &track, int frameNum, int stream ) {
 //   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 //
 //     for( size_t s = 0; s < NumStreams; s++ ) {
-//       threads[s].reset( new std::thread( &addFrame, track, frameNum, s ) );
+//       threads[s].reset( new std::thread( &addFrame, writer, track, frameNum, s ) );
 //     }
 //
 //     for( size_t s = idx; s < idx+NumStreams; s++ ) {

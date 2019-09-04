@@ -14,6 +14,8 @@ extern "C"
 
 #include <libvideoencoder/VideoWriter.h>
 
+#include <opencv2/core.hpp>
+
 namespace libvideoencoder {
 
   struct OutputTrack {
@@ -26,7 +28,6 @@ namespace libvideoencoder {
 
   protected:
 
-    VideoWriter &_writer;
     AVStream *_stream;
 
     int _numSamples;
@@ -42,16 +43,16 @@ namespace libvideoencoder {
 
     virtual ~VideoTrack();
 
-    // Allocates an appropriately sized frame
+    // Allocates an AVFrame based on the track's size
     // for writing
     AVFrame *allocateFrame(enum AVPixelFormat pix_fmt = AV_PIX_FMT_RGB24 );
 
-    bool writeFrame( AVFrame *frame, int frameNum );
-
+    AVPacket *encodeFrame( const cv::Mat &image, int frameNum );
+    AVPacket *encodeFrame( AVFrame *frame, int frameNum );
 
   protected:
 
-    bool encode( AVFrame *frame );
+    AVPacket *encode( AVFrame *frame );
 
     void dumpEncoderOptions( AVCodecContext *enc );
 
@@ -74,7 +75,7 @@ namespace libvideoencoder {
 
     char *allocate( size_t len );
 
-    bool writeData( void *data, size_t len,
+    AVPacket *encodeData( void *data, size_t len,
                     const std::chrono::time_point< std::chrono::system_clock > time = std::chrono::system_clock::now() );
 
   protected:
