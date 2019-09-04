@@ -174,8 +174,7 @@ namespace libvideoencoder {
     assert( image.type() == frameMat.type() );
     image.copyTo( frameMat );
 
-    AVPacket *packet = encodeFrame( image, frameNum );
-
+    AVPacket *packet = encodeFrame( frame, frameNum );
     av_frame_free( &frame );
 
     return packet;
