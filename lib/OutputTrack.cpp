@@ -56,6 +56,7 @@ namespace libvideoencoder {
     _enc->width    = width;
     _enc->height   = height;
 
+    // I'm actually not sure which of these parameters are meaningful.
     _enc->framerate.num = int( frameRate * 100 );
     _enc->framerate.den = 100;
 
@@ -65,8 +66,6 @@ namespace libvideoencoder {
     _stream->time_base = _enc->time_base;
     av_stream_set_r_frame_rate( _stream, _enc->framerate );
     _stream->avg_frame_rate = av_stream_get_r_frame_rate( _stream );
-
-
 
     {
       const enum AVPixelFormat *pixFmt = writer.codec()->pix_fmts;
