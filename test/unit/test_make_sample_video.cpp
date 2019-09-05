@@ -4,6 +4,7 @@
 #include <array>
 #include <string>
 #include <iostream>
+#include <chrono>
 using namespace std;
 
 #include "libvideoencoder/VideoWriter.h"
@@ -102,7 +103,9 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
 
   AVFrame *frame = videoTracks[0].allocateFrame();
 
-  const int numFrames = 120;
+  const int numFrames = 240;
+
+  const auto start = chrono::steady_clock::now();
 
   for( int frameNum = 0; frameNum < numFrames; ++frameNum ) {
 
@@ -120,6 +123,12 @@ TEST(TestMakeSampleVideo, twoVideoOneDataTrack) {
     }
 
   }
+
+  const auto end = chrono::steady_clock::now();
+
+  auto dt = chrono::duration_cast<chrono::milliseconds>( end-start ).count();
+
+  cout << numFrames << " frames took " << dt << " ms, an average rate of " << numFrames / (float(dt)/1000) << " fps";
 
   av_frame_free( &frame );
 

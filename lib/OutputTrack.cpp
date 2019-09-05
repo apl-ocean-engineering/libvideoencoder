@@ -48,7 +48,7 @@ namespace libvideoencoder {
   {
     assert( _enc != nullptr );
 
-    _enc->thread_count = 0;
+    //_enc->thread_count = 0;
 
     _enc->frame_number = 0;
     _enc->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -56,14 +56,13 @@ namespace libvideoencoder {
     _enc->width    = width;
     _enc->height   = height;
 
-    _enc->framerate.num = int( frameRate * 1001 );
-    _enc->framerate.den = 1001;
+    _enc->framerate.num = int( frameRate * 100 );
+    _enc->framerate.den = 100;
 
-    _enc->time_base.num = 1001;
-    _enc->time_base.den = int( frameRate * 1001 );
+    _enc->time_base.num = 100;
+    _enc->time_base.den = int( frameRate * 100 );
 
     _stream->time_base = _enc->time_base;
-    _stream->avg_frame_rate.den = _enc->time_base.num;
     av_stream_set_r_frame_rate( _stream, _enc->framerate );
     _stream->avg_frame_rate = av_stream_get_r_frame_rate( _stream );
 
@@ -89,26 +88,37 @@ namespace libvideoencoder {
       // 3 = HQ
       _enc->profile = 2; //PRORES_PROFILE_STANDARD;
 
-      const int qscale = 6;
+      const int qscale = 4;
       _enc->flags |= AV_CODEC_FLAG_QSCALE;
       _enc->global_quality = FF_QP2LAMBDA * qscale;
 
-      // auto res = av_opt_set_int( _enc->priv_data, "bits_per_mb", 8192, 0);
-      // if(res != 0) {
-      //   char buf[80];
-      //   av_strerror(res, buf, 79);
-      //   std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
+      auto res = av_opt_set_int( _enc->priv_data, "bits_per_mb", 8192, AV_OPT_SEARCH_CHILDREN);
+      if(res != 0) {
+        char buf[80];
+        av_strerror(res, buf, 79);
+        std::cerr << "Error setting option \"bits_per_mb\": " << buf << std::endl;
+      }
+
+      res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
+      if(res != 0) {
+        char buf[80];
+        av_strerror(res, buf, 79);
+
+        std::cerr << "Error setting option \"profile\": " << buf << std::endl;
+      }
+
+      // {
+      //   const AVOption *opt = nullptr;
+      //   while( opt = av_opt_next( _enc, opt ) ) {
+      //     if( !opt ) break;
+      //     if( opt->help )
+      //       std::cerr << opt->name << " : " << opt->help << endl;
+      //     else
+      //       std::cerr << opt->name << " : " << "(none)" << endl;
+      //   }
       // }
 
-      // auto res = av_opt_set( _enc->priv_data, "profile", "standard", 0);
-      // if(res != 0) {
-      //   char buf[80];
-      //   av_strerror(res, buf, 79);
-      //
-      //   std::cerr << "Error setting option \"profile\": " << buf << std::endl;
-      // }
-
-      // dumpEncoderOptions( _enc );
+      //dumpEncoderOptions( _enc );
 
     }
 
@@ -242,7 +252,8 @@ namespace libvideoencoder {
     {
       auto result = avcodec_receive_packet( _enc, packet );
       if( result != 0 ) {
-        std::cerr << "Error in avcodec_receive_packet: " << result << endl;
+        char buf[80];
+        std::cerr << "Error in avcodec_receive_packet: " << result << " : " << av_make_error_string(buf, 79, result) << endl;
         // if( result == AVERROR(EAGAIN) )
         //   std::cerr << "    EAGAIN" << std::endl;
         // else if( result == AVERROR(EINVAL) )

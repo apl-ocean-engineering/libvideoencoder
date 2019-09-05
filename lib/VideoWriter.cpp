@@ -35,7 +35,12 @@ namespace libvideoencoder {
     _formatContext->oformat = av_guess_format(container.c_str(), NULL, NULL);
     assert(_formatContext->oformat != nullptr );  // Should be an exception?
 
-    _codec = avcodec_find_encoder( codec_id );
+    if( codec_id == AV_CODEC_ID_PRORES ) {
+        // Use prores_ks preferentially
+        _codec = avcodec_find_encoder_by_name( "prores_ks" );
+    } else {
+      _codec = avcodec_find_encoder( codec_id );
+    }
     assert( _codec != nullptr );   // Should be an exception?
 
     describeCodec( _codec->id );
